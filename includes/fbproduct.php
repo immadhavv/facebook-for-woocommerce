@@ -1329,6 +1329,7 @@ class WC_Facebook_Product {
 		$product_data[ 'material' ] = Helper::str_truncate( $this->get_fb_material(), 100 );
 		// $product_data[ 'woo_product_type' ] = $this->get_type();
 		// $product_data[ 'unmapped_attributes' ] = $this->get_unmapped_attributes();
+		$product_data[ 'disabled_capabilities' ] = $this->get_disabled_capabilities();
 
 		if ( self::PRODUCT_PREP_TYPE_ITEMS_BATCH === $type_to_prepare_for ) {
 			$product_data['title'] = Helper::str_truncate( WC_Facebookcommerce_Utils::clean_string( $this->get_title() ), self::MAX_TITLE_LENGTH );
@@ -1728,6 +1729,34 @@ class WC_Facebook_Product {
 		}//end try
 
 		return $final_variants;
+	}
+
+	/**
+	 * Some products cannot be directly used in the fb-checkout endpoint. This field is used to exclude those
+	 * from being shown on Facebook Shops.
+	 *
+	 * @return array<string> list of disabled capabilities
+	 */
+	private function get_disabled_capabilities(): array {
+		$product_type = $this->woo_product->get_type();
+
+		// grouped and external products do not work with the checkout URL
+		if ('grouped' === $product_type || 'external' === $product_type ) {
+			return array('mini_shops');
+		}
+
+		// product variations that have undefined attributes ("Any Size...", "Any Color...", etc) are unsupported
+		if ('variation' === $product_type ) {
+			$attributes = $this->woo_product->get_attributes();
+
+			foreach ($attributes as $_attribute_name => $attribute_value) {
+				if ( '' === $attribute_value || null === $attribute_value ) {
+					return array('mini_shops');
+				}
+			}
+		}
+
+		return array();
 	}
 
 }
