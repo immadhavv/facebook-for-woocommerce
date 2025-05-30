@@ -147,7 +147,27 @@ class Checkout {
 
 			$coupon_code = get_query_var( 'coupon' );
 			if ( $coupon_code ) {
-				WC()->cart->apply_coupon( sanitize_text_field( $coupon_code ) );
+				$coupon_code_sanitized = sanitize_text_field( $coupon_code );
+				WC()->cart->apply_coupon( $coupon_code_sanitized );
+
+				if ( ! in_array( $coupon_code_sanitized, WC()->cart->get_applied_coupons(), true ) ) {
+					$error_message = sprintf(
+						'Failed to apply coupon: %s',
+						$coupon_code_sanitized
+					);
+
+					\WC_Facebookcommerce_Utils::log_to_meta(
+						$error_message,
+						array(
+							'flow_name'  => 'checkout',
+							'flow_step'  => 'apply_coupon',
+							'extra_data' => [
+								'coupon_param' => $coupon_code,
+								'coupon_code'  => $coupon_code_sanitized,
+							],
+						)
+					);
+				}
 			}
 
 			$checkout_url = wc_get_checkout_url();
