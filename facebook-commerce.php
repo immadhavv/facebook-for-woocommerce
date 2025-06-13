@@ -16,6 +16,7 @@ use WooCommerce\Facebook\Framework\Plugin\Exception as PluginException;
 use WooCommerce\Facebook\Products;
 use WooCommerce\Facebook\Products\Feed;
 use WooCommerce\Facebook\Framework\Logger;
+use WooCommerce\Facebook\RolloutSwitches;
 
 defined( 'ABSPATH' ) || exit;
 
@@ -74,6 +75,9 @@ class WC_Facebookcommerce_Integration extends WC_Integration {
 
 	/** @var string the "access token" setting ID */
 	const SETTING_ACCESS_TOKEN = 'access_token';
+
+	/** @var string the "enable product sync" setting ID */
+	const SETTING_ENABLE_PRODUCT_SYNC = 'wc_facebook_enable_product_sync';
 
 	/** @var string the excluded product category IDs setting ID */
 	const SETTING_EXCLUDED_PRODUCT_CATEGORY_IDS = 'wc_facebook_excluded_product_category_ids';
@@ -2486,6 +2490,19 @@ class WC_Facebookcommerce_Integration extends WC_Integration {
 	}
 
 	/**
+	 * Determines if viewing the plugin settings in the admin.
+	 *
+	 * @since 3.5.3
+	 *
+	 * @return bool
+	 */
+	public function is_woo_all_products_enabled() {
+		return $this->facebook_for_woocommerce->get_rollout_switches()->is_switch_enabled(
+			RolloutSwitches::SWITCH_WOO_ALL_PRODUCTS_SYNC_ENABLED
+		);
+	}
+
+	/**
 	 * Determines whether advanced matching is enabled.
 	 *
 	 * @return bool
@@ -2501,6 +2518,33 @@ class WC_Facebookcommerce_Integration extends WC_Integration {
 		 * @since 1.10.0
 		 */
 		return (bool) apply_filters( 'wc_facebook_is_advanced_matching_enabled', true, $this );
+	}
+
+	/**
+	 * Determines whether product sync is enabled.
+	 *
+	 * @return bool
+	 * @since 1.10.0
+	 */
+	public function is_product_sync_enabled() {
+		/**
+		 * If all products switch is enabled
+		 * There is no check for global sync
+		 */
+
+		if ( $this->is_woo_all_products_enabled() ) {
+			return true;
+		}
+
+		/**
+		 * Filters whether product sync is enabled.
+		 *
+		 * @param bool $is_enabled whether product sync is enabled
+		 * @param \WC_Facebookcommerce_Integration $integration the integration instance
+		 *
+		 * @since 1.10.0
+		 */
+		return (bool) apply_filters( 'wc_facebook_is_product_sync_enabled', 'yes' === get_option( self::SETTING_ENABLE_PRODUCT_SYNC, 'yes' ), $this );
 	}
 
 	/**
