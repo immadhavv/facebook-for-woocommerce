@@ -8,9 +8,10 @@ on:
       version:
         description: "Version number to be released"
         required: true
-  
+
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   prepare-release:
@@ -203,3 +204,9 @@ jobs:
           git add .
           git commit -m "Updating version to $NEW_VERSION"
           git push origin HEAD
+
+  build-and-upload:
+    needs: prepare-release
+    uses: ./.github/workflows/shared-build-plugin-artifact.yml
+    with:
+      ref: ${{ format('refs/heads/release/{0}', github.event.inputs.version) }}
