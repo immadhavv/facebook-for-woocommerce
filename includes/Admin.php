@@ -1273,6 +1273,7 @@ class Admin {
 						'class'       => 'enable-if-sync-enabled',
 						'desc_tip'    => true,
 						'description' => __( 'Brand name of the item', 'facebook-for-woocommerce' ),
+						'placeholder' => \WC_Facebookcommerce_Utils::get_default_fb_brand(),
 					)
 				);
 
