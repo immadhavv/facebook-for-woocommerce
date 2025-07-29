@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches: add-e2e-tests-in-release-workflow
-
+  # Test commit to trigger the workflow
 jobs:
   set-stable-tag-prepare:
     runs-on: ubuntu-latest

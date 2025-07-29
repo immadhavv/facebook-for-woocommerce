@@ -28,19 +28,19 @@ jobs:
         with:
           php-version: '7.4'
           tools: composer
-
+      
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
           node-version-file: 'package.json'
           cache-dependency-path: './package-lock.json'
           cache: 'npm'
-
+      
       - name: Install dependencies
         run: |
           composer install
           npm ci || npm install
-
+          
       - name: Build plugin
         run: |
           npm run build
@@ -142,11 +142,11 @@ jobs:
             for (let retry = 0; retry < maxRetries; retry++) {
               try {
                 await github.rest.repos.uploadReleaseAsset({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
+                  owner: context.repo.owner, 
+                  repo: context.repo.repo, 
                   release_id: release.data.id,
-                  name: fileName,
-                  headers: {'Content-Type': 'application/x-xz'},
+                  name: fileName, 
+                  headers: {'Content-Type': 'application/x-xz'}, 
                   data: source
                 });
                 break;
@@ -158,8 +158,8 @@ jobs:
               }
             }
             await github.rest.repos.updateRelease({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
+              owner: context.repo.owner, 
+              repo: context.repo.repo, 
               release_id: release.data.id,
               draft: false,
               prerelease: true,
