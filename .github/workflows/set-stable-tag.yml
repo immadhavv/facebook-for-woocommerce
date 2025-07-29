@@ -2,7 +2,6 @@ name: Set Stable Tag
 
 on:
   workflow_dispatch:
-  workflow_call:
 
 jobs:
   set-stable-tag-prepare:
@@ -39,7 +38,7 @@ jobs:
     needs: set-stable-tag-prepare
     uses: ./.github/workflows/product-creation-tests.yml
     with:
-      marketplace-version: ${{ needs.set-stable-tag-prepare.outputs.current-version }}
+      marketplace_version: ${{ needs.set-stable-tag-prepare.outputs.current-version }}
 
   # set-stable-tag:
   #   runs-on: ubuntu-latest

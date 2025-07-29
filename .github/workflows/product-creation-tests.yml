@@ -3,7 +3,7 @@ name: Product Creation E2E Tests
 on:
   workflow_call:
     inputs:
-        marketplace-version:
+        marketplace_version:
           description: 'Plugin version to test'
           required: false
           type: string
@@ -131,9 +131,9 @@ jobs:
           cd /tmp/wordpress
 
           # Use marketplace version if flag is true
-          if [[ ${{ inputs.marketplace-version }} ]]; then
+          if [[ ${{ inputs.marketplace_version }} ]]; then
             echo "Installing Facebook for WooCommerce from wordpress.org marketplace"
-            wp plugin install facebook-for-woocommerce --allow-root --version=${{ inputs.marketplace-version }}
+            wp plugin install facebook-for-woocommerce --allow-root --version=${{ inputs.marketplace_version }}
           else
             echo "Installing Facebook for WooCommerce from local workspace"
             # Copy plugin files from the checked out repository root
