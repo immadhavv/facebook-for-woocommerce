@@ -1,11 +1,16 @@
 name: Set Stable Tag
 
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+  push:
+    branches: add-e2e-tests-in-release-workflow
 
 jobs:
-  set-stable-tag:
+  set-stable-tag-prepare:
     runs-on: ubuntu-latest
     environment: Deployment
+    outputs:
+      current-version: ${{ steps.package-version.outputs.current-version }}
     steps:
       - uses: actions/checkout@v4
 
@@ -30,6 +35,18 @@ jobs:
             exit 1
           fi
 
+  test-marketplace-version:
+    environment: Deployment
+    needs: set-stable-tag-prepare
+    uses: ./.github/workflows/product-creation-tests.yml
+    with:
+      marketplace-version: ${{ needs.set-stable-tag-prepare.outputs.current-version }}
+
+  set-stable-tag:
+    runs-on: ubuntu-latest
+    environment: Deployment
+    needs: [set-stable-tag-prepare, test-marketplace-version]
+    steps:
       - name: Install SVN
         run: sudo apt-get install subversion -y
 
@@ -38,18 +55,18 @@ jobs:
 
       - name: Validate SVN tag
         run: |
-          if [ ! -d "woocommerce_svn/tags/${{ steps.package-version.outputs.current-version}}" ]; then
+          if [ ! -d "woocommerce_svn/tags/${{ needs.set-stable-tag-prepare.outputs.current-version }}" ]; then
             echo "❌ SVN tag directory does not exist" 1>&2
             exit 1
           fi
 
       - name: Update readme.txt
         env:
-          NEW_VERSION: ${{ steps.package-version.outputs.current-version}}
+          NEW_VERSION: ${{ needs.set-stable-tag-prepare.outputs.current-version }}
         run: |
           cd woocommerce_svn
           sed -i -E "s/^(Stable tag:)[[:space:]]*[0-9.]+/\1 $NEW_VERSION/" "trunk/readme.txt"
-      
+
       - name: Commit to SVN
         env:
           SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
@@ -59,4 +76,4 @@ jobs:
           cat trunk/readme.txt
           svn status
           svn diff
-          svn commit -m "Update stable tag for version ${{ steps.package-version.outputs.current-version}}" --username "$SVN_USERNAME" --password "$SVN_PASSWORD" --no-auth-cache --non-interactive
+          svn commit -m "Update stable tag for version ${{ needs.set-stable-tag-prepare.outputs.current-version }}" --username "$SVN_USERNAME" --password "$SVN_PASSWORD" --no-auth-cache --non-interactive
