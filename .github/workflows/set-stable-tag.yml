@@ -32,21 +32,14 @@ jobs:
       #       echo "❌ Git tag does not exist" 1>&2
       #       exit 1
       #     fi
-  call-deploy:
+
+  test-marketplace-version:
+    environment: Deployment
     needs: set-stable-tag-prepare
     uses: ./.github/workflows/product-creation-tests.yml
     with:
       marketplace-version: ${{ needs.set-stable-tag-prepare.outputs.current-version }}
 
-  # test-marketplace-version:
-  #   environment: Deployment
-  #   needs: set-stable-tag-prepare
-  #   runs-on: ubuntu-latest
-  #   call-deploy:
-  #     needs:
-  #     - uses: ./.github/workflows/product-creation-tests.yml
-  #       with:
-  #
 
   # set-stable-tag:
   #   runs-on: ubuntu-latest
