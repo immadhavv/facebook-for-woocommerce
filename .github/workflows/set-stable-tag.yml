@@ -12,8 +12,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      -
-
       # - name: Fail if not on a release publish branch
       #   run: |
       #     echo "Current ref: ${{ github.ref }}"
