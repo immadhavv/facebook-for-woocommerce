@@ -1,6 +1,13 @@
 name: Product Creation E2E Tests
 
 on:
+  # make this workflow reusable and take in marketplace version as input
+  workflow_call:
+    inputs:
+        marketplace-version:
+          description: 'Plugin version to test'
+          required: false
+          type: string
   pull_request:
     branches: [ main, master, develop ]
 
@@ -123,17 +130,25 @@ jobs:
       - name: Install Facebook for WooCommerce plugin
         run: |
           cd /tmp/wordpress
-          # Copy plugin files from the checked out repository root
-          cp -r ${{ github.workspace }} wp-content/plugins/facebook-for-woocommerce/
 
-          # Install Composer dependencies for the plugin
-          cd wp-content/plugins/facebook-for-woocommerce
-          if [ -f composer.json ]; then
-            composer install --no-dev --optimize-autoloader
+          # Use marketplace version if version is passed
+          if [[ -n ${{ inputs.marketplace-version }} ]]; then
+            echo "Installing Facebook for WooCommerce from wordpress.org marketplace"
+            wp plugin install facebook-for-woocommerce --allow-root --version=${{ inputs.marketplace-version }}
+          else
+            echo "Installing Facebook for WooCommerce from local workspace"
+            # Copy plugin files from the checked out repository root
+            cp -r ${{ github.workspace }} wp-content/plugins/facebook-for-woocommerce/
+
+            # Install Composer dependencies for the plugin
+            cd wp-content/plugins/facebook-for-woocommerce
+            if [ -f composer.json ]; then
+              composer install --no-dev --optimize-autoloader
+            fi
+            cd /tmp/wordpress
           fi
 
           # Activate the plugin
-          cd /tmp/wordpress
           wp plugin activate facebook-for-woocommerce --allow-root
 
       - name: Verify WordPress setup
