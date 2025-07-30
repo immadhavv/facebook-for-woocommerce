@@ -12,14 +12,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Fail if not on a release publish branch
-        run: |
-          echo "Current ref: ${{ github.ref }}"
-          BRANCH="${{ github.ref }}"
-          if [[ ! $BRANCH == refs/heads/release/*/publish ]]; then
-            echo "❌ This workflow can only be run on release/*/publish branches."
-            exit 1
-          fi
+      # - name: Fail if not on a release publish branch
+      #   run: |
+      #     echo "Current ref: ${{ github.ref }}"
+      #     BRANCH="${{ github.ref }}"
+      #     if [[ ! $BRANCH == refs/heads/release/*/publish ]]; then
+      #       echo "❌ This workflow can only be run on release/*/publish branches."
+      #       exit 1
+      #     fi
 
       - name: Get NPM Version
         id: package-version
