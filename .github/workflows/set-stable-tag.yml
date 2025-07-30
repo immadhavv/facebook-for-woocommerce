@@ -39,7 +39,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: ./.github/workflows/product-creation-tests.yml
+
+      - uses: .github/workflows/product-creation-tests.yml
         with:
           marketplace-version: ${{ needs.set-stable-tag-prepare.outputs.current-version }}
 
