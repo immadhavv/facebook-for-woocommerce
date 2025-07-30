@@ -12,6 +12,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      -
+
       # - name: Fail if not on a release publish branch
       #   run: |
       #     echo "Current ref: ${{ github.ref }}"
@@ -32,17 +34,21 @@ jobs:
       #       echo "❌ Git tag does not exist" 1>&2
       #       exit 1
       #     fi
-
-  test-marketplace-version:
-    environment: Deployment
+  call-deploy:
     needs: set-stable-tag-prepare
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+    uses: ./.github/workflows/product-creation-tests.yml
+    with:
+      marketplace-version: ${{ needs.set-stable-tag-prepare.outputs.current-version }}
 
-      - uses: ./.github/workflows/product-creation-tests.yml
-        with:
-          marketplace-version: ${{ needs.set-stable-tag-prepare.outputs.current-version }}
+  # test-marketplace-version:
+  #   environment: Deployment
+  #   needs: set-stable-tag-prepare
+  #   runs-on: ubuntu-latest
+  #   call-deploy:
+  #     needs:
+  #     - uses: ./.github/workflows/product-creation-tests.yml
+  #       with:
+  #
 
   # set-stable-tag:
   #   runs-on: ubuntu-latest
