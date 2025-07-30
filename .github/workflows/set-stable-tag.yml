@@ -38,7 +38,7 @@ jobs:
     needs: set-stable-tag-prepare
     uses: ./.github/workflows/product-creation-tests.yml
     with:
-      marketplace_version: ${{ needs.set-stable-tag-prepare.outputs.current-version }}
+      marketplace-version: ${{ needs.set-stable-tag-prepare.outputs.current-version }}
 
   # set-stable-tag:
   #   runs-on: ubuntu-latest
