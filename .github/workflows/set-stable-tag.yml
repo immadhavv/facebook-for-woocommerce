@@ -36,9 +36,11 @@ jobs:
   test-marketplace-version:
     environment: Deployment
     needs: set-stable-tag-prepare
-    uses: ./.github/workflows/product-creation-tests.yml
-    with:
-      marketplace-version: ${{ needs.set-stable-tag-prepare.outputs.current-version }}
+    runs-on: ubuntu-latest
+    steps:
+    - uses: ./.github/workflows/product-creation-tests.yml
+      with:
+        marketplace-version: ${{ needs.set-stable-tag-prepare.outputs.current-version }}
 
   # set-stable-tag:
   #   runs-on: ubuntu-latest
