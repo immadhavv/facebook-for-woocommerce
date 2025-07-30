@@ -131,7 +131,7 @@ jobs:
           cd /tmp/wordpress
 
           # Use marketplace version if flag is true
-          if [[ ${{ inputs.marketplace-version }} ]]; then
+          if [[ -n ${{ inputs.marketplace-version }} ]]; then
             echo "Installing Facebook for WooCommerce from wordpress.org marketplace"
             wp plugin install facebook-for-woocommerce --allow-root --version=${{ inputs.marketplace-version }}
           else
