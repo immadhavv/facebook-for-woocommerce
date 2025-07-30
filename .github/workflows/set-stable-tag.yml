@@ -34,7 +34,6 @@ jobs:
       #     fi
 
   test-marketplace-version:
-    environment: Deployment
     needs: set-stable-tag-prepare
     uses: ./.github/workflows/product-creation-tests.yml
     with:
