@@ -33,6 +33,7 @@ jobs:
             exit 1
           fi
 
+  #reusing existing workflow to run e2e tests, but on the marketplace version
   e2e-tests-on-marketplace-version:
     needs: set-stable-tag-prechecks
     uses: ./.github/workflows/product-creation-tests.yml
