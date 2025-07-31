@@ -6,8 +6,8 @@ jobs:
   #reusing existing workflow to run e2e tests, but on the marketplace version
   e2e-tests-on-marketplace-version:
     uses: ./.github/workflows/product-creation-tests.yml
-    # with:
-    #   use-marketplace-version: true
+    with:
+      use-marketplace-version: true
 
   # set-stable-tag:
   #   runs-on: ubuntu-latest
