@@ -4,10 +4,11 @@ on:
   # make this workflow reusable and take in marketplace version as input
   workflow_call:
     inputs:
-        marketplace-version:
-          description: 'Plugin version to test'
+        use-marketplace-version:
+          description: 'Should this use marketplace version of the plugin'
           required: false
-          type: string
+          type: boolean
+          default: false
   pull_request:
     branches: [ main, master, develop ]
 
@@ -131,10 +132,10 @@ jobs:
         run: |
           cd /tmp/wordpress
 
-          # Use marketplace version if version is passed
-          if [ -n "${{ inputs.marketplace-version }}" ]; then
+          # Use marketplace version if flag is true
+          if [ "${{ inputs.use-marketplace-version }}" = "true" ]; then
             echo "Installing Facebook for WooCommerce from wordpress.org marketplace"
-            wp plugin install facebook-for-woocommerce --allow-root --version=${{ inputs.marketplace-version }}
+            wp plugin install facebook-for-woocommerce --version=dev --allow-root
           else
             echo "Installing Facebook for WooCommerce from local workspace"
             # Copy plugin files from the checked out repository root
@@ -150,6 +151,7 @@ jobs:
 
           # Activate the plugin
           wp plugin activate facebook-for-woocommerce --allow-root
+
 
       - name: Verify WordPress setup
         run: |
