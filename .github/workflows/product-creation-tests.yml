@@ -147,10 +147,10 @@ jobs:
               composer install --no-dev --optimize-autoloader
             fi
             cd /tmp/wordpress
-            # Activate the plugin
-            wp plugin activate facebook-for-woocommerce --allow-root
           fi
 
+          # Activate the plugin
+          wp plugin activate facebook-for-woocommerce --allow-root
 
 
       - name: Verify WordPress setup
