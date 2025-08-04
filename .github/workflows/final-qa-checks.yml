@@ -6,8 +6,6 @@ on:
 
 
 jobs:
-  build-and-upload:
-  uses: ./.github/workflows/release-plugin.yml
 
   compare-artifacts:
     runs-on: ubuntu-latest
