@@ -1,8 +1,8 @@
 name: Final QA Checks
 
 on:
-  - workflow_dispatch
-  - workflow_call
+  - workflow_dispatch:
+  - workflow_call:
 
 
 jobs:
@@ -37,7 +37,7 @@ jobs:
 
           # Check if artifact was found
           if [ -z "$ARTIFACT_ID" ]; then
-            echo "::error::No artifact found with name facebook-for-woocommerce"
+            echo "::error::No artifact found with name facebook-for-woocommerce.zip"
             exit 1
           fi
 
