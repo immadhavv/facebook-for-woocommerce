@@ -22,21 +22,36 @@ jobs:
           sudo apt update
           sudo apt install gh
 
+           # Authenticate with GitHub CLI
+          gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
+
+          # List available artifacts
+          gh api repos/${{ github.repository }}/actions/artifacts --jq '.artifacts[].name' || echo "No artifacts found"
+
           # Get latest artifact ID for facebook-for-woocommerce
           ARTIFACT_ID=$(gh api repos/${{ github.repository }}/actions/artifacts \
           --jq '.artifacts[] | select(.name=="facebook-for-woocommerce" and .workflow_run.name=="Release Plugin") | .id' \
           | head -n1)
 
 
+
+          # Check if artifact was found
+          if [ -z "$ARTIFACT_ID" ]; then
+            echo "::error::No artifact found with name facebook-for-woocommerce"
+            exit 1
+          fi
+
+          echo "Found artifact ID: $ARTIFACT_ID"
+
           # Download the artifact
           gh api repos/${{ github.repository }}/actions/artifacts/$ARTIFACT_ID/zip \
             -H "Accept: application/vnd.github+json" > facebook-for-woocommerce.zip
 
-
           # Extract the artifact
+          mkdir -p downloaded-plugin
           unzip facebook-for-woocommerce.zip -d downloaded-plugin
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        # env:
+        #   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Download marketplace version
       - name: Install SVN
