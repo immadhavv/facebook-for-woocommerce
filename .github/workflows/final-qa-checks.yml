@@ -6,7 +6,6 @@ on:
 
 
 jobs:
-
   compare-artifacts:
     runs-on: ubuntu-latest
     needs: build-and-upload
