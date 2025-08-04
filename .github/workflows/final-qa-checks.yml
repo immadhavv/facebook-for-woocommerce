@@ -6,8 +6,12 @@ on:
 
 
 jobs:
+  build-and-upload:
+  uses: ./.github/workflows/release-plugin.yml
+
   compare-artifacts:
     runs-on: ubuntu-latest
+    needs: build-and-upload
     environment: Deployment
     steps:
       - name: Checkout
@@ -84,5 +88,6 @@ jobs:
   #reusing existing workflow to run e2e tests, but on the marketplace version
   e2e-tests-on-marketplace-version:
     uses: ./.github/workflows/product-creation-tests.yml
+    needs: compare-artifacts
     with:
       use-marketplace-version: true
