@@ -1,0 +1,69 @@
+name: Final QA Checks
+
+on: workflow_dispatch
+
+jobs:
+  compare-artifacts:
+    runs-on: ubuntu-latest
+    environment: Deployment
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Download latest built artifact
+      - name: Download latest release artifact
+        run: |
+          # Install GitHub CLI
+          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+          sudo apt update
+          sudo apt install gh
+
+          # Get latest artifact ID for facebook-for-woocommerce
+          ARTIFACT_ID=$(gh api repos/${{ github.repository }}/actions/artifacts \
+            --jq '.artifacts[] | select(.name=="facebook-for-woocommerce" and .workflow_run.name=="Release Plugin") | .id' \
+            --limit 1)
+
+          # Download the artifact
+          gh api repos/${{ github.repository }}/actions/artifacts/$ARTIFACT_ID/zip \
+            -H "Accept: application/vnd.github+json" \
+            --output facebook-for-woocommerce.zip
+
+          # Extract the artifact
+          unzip facebook-for-woocommerce.zip -d downloaded-plugin
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Download marketplace version
+      - name: Install SVN
+        run: sudo apt-get install subversion -y
+
+      - name: Checkout SVN Repository
+        run: svn co https://plugins.svn.wordpress.org/facebook-for-woocommerce/ svn_repo --quiet --non-interactive
+
+      - name: Extract SVN trunk
+        run: |
+          mkdir -p marketplace-version
+          cp -r svn_repo/trunk/* marketplace-version/
+          echo "Downloaded SVN trunk to marketplace-version directory"
+
+      # Compare the two artifacts
+      - name: Compare the two artifacts
+        run: |
+          diff -r downloaded-plugin marketplace-version > diff_output.txt || DIFF_EXIT=$?
+
+          # Check if there are differences
+          if [ -s diff_output.txt ]; then
+            echo "::error::Differences found between built plugin and marketplace version!"
+            cat diff_output.txt
+            exit 1
+          else
+            echo "No differences found between built plugin and marketplace version."
+          fi
+
+
+  #reusing existing workflow to run e2e tests, but on the marketplace version
+  e2e-tests-on-marketplace-version:
+    uses: ./.github/workflows/product-creation-tests.yml
+    with:
+      use-marketplace-version: true
