@@ -25,18 +25,20 @@ jobs:
            # Authenticate with GitHub CLI
           gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
 
+          echo "Token --- ${{ secrets.GITHUB_TOKEN }}"
+
           # # List available artifacts
           # gh api repos/${{ github.repository }}/actions/artifacts --jq '.artifacts[].name' || echo "No artifacts found"
 
           # # Get latest artifact ID for facebook-for-woocommerce
           # ARTIFACT_ID=$(gh api repos/${{ github.repository }}/actions/artifacts \
-          # --jq '.artifacts[] | select(.name=="facebook-for-woocommerce.zip" and .workflow_run.name=="Release Plugin") | .id' \
+          # --jq '.artifacts[] | select(.name=="facebook-for-woocommerce.zip" and .workflow_run.name=="Set Stable Tag") | .id' \
           # | head -n1)
 
-          # Get workflow ID for "Release Plugin"
-          echo "Fetching workflow ID for 'Release Plugin'..."
+          # Get workflow ID for "Set Stable Tag"
+          echo "Fetching workflow ID for 'Set Stable Tag'..."
           WORKFLOW_ID=$(gh api repos/${{ github.repository }}/actions/workflows \
-            --jq '.workflows[] | select(.name=="Release Plugin") | .id')
+            --jq '.workflows[] | select(.name=="Set Stable Tag") | .id')
           echo "Workflow ID: $WORKFLOW_ID"
 
           # Get latest successful run ID for that workflow
