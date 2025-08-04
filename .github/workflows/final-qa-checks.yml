@@ -1,8 +1,8 @@
 name: Final QA Checks
 
 on:
-  - workflow_dispatch:
-  - workflow_call:
+  workflow_dispatch:
+  workflow_call:
 
 
 jobs:
@@ -30,14 +30,14 @@ jobs:
 
           # Get latest artifact ID for facebook-for-woocommerce
           ARTIFACT_ID=$(gh api repos/${{ github.repository }}/actions/artifacts \
-          --jq '.artifacts[] | select(.name=="facebook-for-woocommerce.zip" and .workflow_run.name=="Release Plugin") | .id' \
+          --jq '.artifacts[] | select(.name=="facebook-for-woocommerce" and .workflow_run.name=="Release Plugin") | .id' \
           | head -n1)
 
 
 
           # Check if artifact was found
           if [ -z "$ARTIFACT_ID" ]; then
-            echo "::error::No artifact found with name facebook-for-woocommerce.zip"
+            echo "::error::No artifact found with name facebook-for-woocommerce"
             exit 1
           fi
 
