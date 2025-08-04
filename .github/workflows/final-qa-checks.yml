@@ -25,13 +25,31 @@ jobs:
            # Authenticate with GitHub CLI
           gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
 
-          # List available artifacts
-          gh api repos/${{ github.repository }}/actions/artifacts --jq '.artifacts[].name' || echo "No artifacts found"
+          # # List available artifacts
+          # gh api repos/${{ github.repository }}/actions/artifacts --jq '.artifacts[].name' || echo "No artifacts found"
 
-          # Get latest artifact ID for facebook-for-woocommerce
-          ARTIFACT_ID=$(gh api repos/${{ github.repository }}/actions/artifacts \
-          --jq '.artifacts[] | select(.name=="facebook-for-woocommerce.zip" and .workflow_run.name=="Release Plugin") | .id' \
-          | head -n1)
+          # # Get latest artifact ID for facebook-for-woocommerce
+          # ARTIFACT_ID=$(gh api repos/${{ github.repository }}/actions/artifacts \
+          # --jq '.artifacts[] | select(.name=="facebook-for-woocommerce.zip" and .workflow_run.name=="Release Plugin") | .id' \
+          # | head -n1)
+
+          # Get workflow ID for "Release Plugin"
+          echo "Fetching workflow ID for 'Release Plugin'..."
+          WORKFLOW_ID=$(gh api repos/${{ github.repository }}/actions/workflows \
+            --jq '.workflows[] | select(.name=="Release Plugin") | .id')
+          echo "Workflow ID: $WORKFLOW_ID"
+
+          # Get latest successful run ID for that workflow
+          echo "Fetching latest successful run ID for workflow ID $WORKFLOW_ID..."
+          RUN_ID=$(gh api repos/${{ github.repository }}/actions/workflows/${WORKFLOW_ID}/runs \
+            --jq '.workflow_runs[] | select(.conclusion=="success") | .id' | head -n1)
+          echo "Latest successful run ID: $RUN_ID"
+
+          # Get artifact ID from that specific run
+          echo "Fetching artifact ID for 'facebook-for-woocommerce.zip' in run $RUN_ID..."
+          ARTIFACT_ID=$(gh api repos/${{ github.repository }}/actions/runs/${RUN_ID}/artifacts \
+            --jq '.artifacts[] | select(.name=="facebook-for-woocommerce.zip") | .id' | head -n1)
+          echo "Artifact ID: $ARTIFACT_ID"
 
 
 
