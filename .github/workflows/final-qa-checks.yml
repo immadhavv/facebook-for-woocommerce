@@ -1,6 +1,9 @@
 name: Final QA Checks
 
-on: workflow_dispatch
+on:
+  - workflow_dispatch
+  - workflow_call
+
 
 jobs:
   compare-artifacts:
