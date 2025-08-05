@@ -26,16 +26,16 @@ jobs:
           gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
 
 
-      - name: Get latest successful release-plugin run ID
+      - name: Get latest successful shared-build-plugin-artifact run ID
         id: get_run
         run: |
           run_id=$(gh api \
-            repos/${{ github.repository }}/actions/workflows/release-plugin.yml/runs \
+            repos/${{ github.repository }}/actions/workflows/shared-build-plugin-artifact.yml/runs \
             --jq '.workflow_runs[] | select(.conclusion == "success") | .id' \
             --paginate | head -n1)
 
           if [ -z "$run_id" ]; then
-            echo "❌ No successful run found for release-plugin"
+            echo "❌ No successful run found for shared-build-plugin-artifact"
             exit 1
           fi
 
@@ -91,11 +91,11 @@ jobs:
 
           # Check if there are differences
           if [ -s diff_output.txt ]; then
-            echo "::error::Differences found between built plugin and marketplace version!"
+            echo "❌ Differences found between built plugin and marketplace version!"
             cat diff_output.txt
             exit 1
           else
-            echo "No differences found between built plugin and marketplace version."
+            echo "✅ No differences found between built plugin and marketplace version."
           fi
 
 
