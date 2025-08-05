@@ -92,7 +92,7 @@ jobs:
           # Check if there are differences
           if [ -s diff_output.txt ]; then
             echo "❌ Differences found between built plugin and marketplace version!"
-            cat diff_output.txt
+            # cat diff_output.txt
             exit 1
           else
             echo "✅ No differences found between built plugin and marketplace version."
