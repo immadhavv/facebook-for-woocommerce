@@ -8,11 +8,14 @@ on:
       version:
         description: "Version number to be released"
         required: true
+        type: string
+
   workflow_call:
     inputs:
       version:
         description: "Version number to be released"
         required: true
+        type: string
 
 permissions:
   contents: write
