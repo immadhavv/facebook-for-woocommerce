@@ -9,22 +9,11 @@ permissions:
   actions: read
 
 jobs:
-  get_artifact:
+  compare-artifacts:
     runs-on: ubuntu-latest
     environment: Deployment
 
-
-
-#TESTING!
     steps:
-    #GETTING DATA
-      # - name: Get artifacts
-
-      # - name: Get workflows
-
-      # - name: Get runs
-
-
       - name: Download latest release artifact
         run: |
           # Install GitHub CLI
@@ -40,10 +29,6 @@ jobs:
       - name: Get latest successful release-plugin run ID
         id: get_run
         run: |
-          gh api \
-            repos/${{ github.repository }}/actions/workflows/release-plugin.yml/runs | jq .
-
-
           run_id=$(gh api \
             repos/${{ github.repository }}/actions/workflows/release-plugin.yml/runs \
             --jq '.workflow_runs[] | select(.conclusion == "success") | .id' \
@@ -58,7 +43,7 @@ jobs:
           echo "run_id=$run_id" >> $GITHUB_OUTPUT
 
       - name: Get artifact ID for facebook-for-woocommerce
-        id: get_artifact
+        id: compare-artifacts
         run: |
           artifact_id=$(gh api \
             repos/${{ github.repository }}/actions/runs/${{ steps.get_run.outputs.run_id }}/artifacts \
@@ -78,79 +63,12 @@ jobs:
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
             -H "Accept: application/vnd.github+json" \
             -o plugin-release.zip \
-            https://api.github.com/repos/${{ github.repository }}/actions/artifacts/${{ steps.get_artifact.outputs.artifact_id }}/zip
+            https://api.github.com/repos/${{ github.repository }}/actions/artifacts/${{ steps.compare-artifacts.outputs.artifact_id }}/zip
 
       - name: Unzip
-        run: unzip plugin-release.zip -d plugin-release
+        run: unzip plugin-release.zip -d downloaded-plugin
 
 
-      # Download latest built artifact
-      - name: Download latest release artifact
-        if : false
-        run: |
-          # Install GitHub CLI
-          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
-          sudo apt update
-          sudo apt install gh
-
-           # Authenticate with GitHub CLI
-          gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
-
-          # # List available artifacts
-          # gh api repos/${{ github.repository }}/actions/artifacts --jq '.artifacts[].name' || echo "No artifacts found"
-
-
-          #list artifacts
-          gh api repos/${{ github.repository }}/actions/artifacts | jq .
-
-
-          #list all workflows
-          gh api repos/${{ github.repository }}/actions/workflows | jq .
-
-
-          # # Get latest artifact ID for facebook-for-woocommerce
-          # ARTIFACT_ID=$(gh api repos/${{ github.repository }}/actions/artifacts \
-          # --jq '.artifacts[] | select(.name=="facebook-for-woocommerce" and .workflow_run.name=="Set Stable Tag") | .id' \
-          # | head -n1)
-
-          # Get workflow ID for "Set Stable Tag"
-          echo "Fetching workflow ID for 'Set Stable Tag'..."
-          WORKFLOW_ID=$(gh api repos/${{ github.repository }}/actions/workflows \
-            --jq '.workflows[] | select(.name=="Set Stable Tag") | .id')
-          echo "Workflow ID: $WORKFLOW_ID"
-
-          # Get latest successful run ID for that workflow
-          echo "Fetching latest successful run ID for workflow ID $WORKFLOW_ID..."
-          RUN_ID=$(gh api repos/${{ github.repository }}/actions/workflows/${WORKFLOW_ID}/runs \
-            --jq '.workflow_runs[] | select(.conclusion=="success") | .id' | head -n1)
-          echo "Latest successful run ID: $RUN_ID"
-
-          # Get artifact ID from that specific run
-          echo "Fetching artifact ID for 'facebook-for-woocommerce.zip' in run $RUN_ID..."
-          ARTIFACT_ID=$(gh api repos/${{ github.repository }}/actions/runs/${RUN_ID}/artifacts \
-            --jq '.artifacts[] | select(.name=="facebook-for-woocommerce.zip") | .id' | head -n1)
-          echo "Artifact ID: $ARTIFACT_ID"
-
-
-
-          # Check if artifact was found
-          if [ -z "$ARTIFACT_ID" ]; then
-            echo "::error::No artifact found with name facebook-for-woocommerce"
-            exit 1
-          fi
-
-          echo "Found artifact ID: $ARTIFACT_ID"
-
-          # Download the artifact
-          gh api repos/${{ github.repository }}/actions/artifacts/$ARTIFACT_ID/zip \
-            -H "Accept: application/vnd.github+json" > facebook-for-woocommerce.zip
-
-          # Extract the artifact
-          mkdir -p downloaded-plugin
-          unzip facebook-for-woocommerce.zip -d downloaded-plugin
-        # env:
-        #   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Download marketplace version
       - name: Install SVN
@@ -183,6 +101,6 @@ jobs:
   #reusing existing workflow to run e2e tests, but on the marketplace version
   e2e-tests-on-marketplace-version:
     uses: ./.github/workflows/product-creation-tests.yml
-    needs: get_artifact
+    needs: compare-artifacts
     with:
       use-marketplace-version: true
