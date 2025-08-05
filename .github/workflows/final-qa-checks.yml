@@ -67,9 +67,10 @@ jobs:
 
       - name: Unzip
         run: |
-         unzip plugin-release.zip -d downloaded-plugin
-         ls downloaded-plugin
-
+          mkdir -p extracted-plugin
+          unzip plugin-release.zip -d extracted-plugin
+          unzip extracted-plugin/facebook-for-woocommerce.zip -d downloaded-plugin
+          ls downloaded-plugin
 
 
       # Download marketplace version
@@ -83,7 +84,7 @@ jobs:
         run: |
           mkdir -p marketplace-version
           cp -r svn_repo/trunk/* marketplace-version/
-          ls markerplace-version
+          ls marketplace-version
           echo "Downloaded SVN trunk to marketplace-version directory"
 
       # Compare the two artifacts
