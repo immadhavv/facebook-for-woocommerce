@@ -25,11 +25,17 @@ jobs:
            # Authenticate with GitHub CLI
           gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
 
-          #list artifacts
-          gh api repos/${{ github.repository }}/actions/artifacts
-
           # # List available artifacts
           # gh api repos/${{ github.repository }}/actions/artifacts --jq '.artifacts[].name' || echo "No artifacts found"
+
+
+          #list artifacts
+          gh api repos/${{ github.repository }}/actions/artifacts | jq .
+
+
+          #list all workflows
+          gh api repos/${{ github.repository }}/actions/workflows | jq .
+
 
           # # Get latest artifact ID for facebook-for-woocommerce
           # ARTIFACT_ID=$(gh api repos/${{ github.repository }}/actions/artifacts \
