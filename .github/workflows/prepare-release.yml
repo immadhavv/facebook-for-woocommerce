@@ -8,6 +8,11 @@ on:
       version:
         description: "Version number to be released"
         required: true
+  workflow_call:
+    inputs:
+      version:
+        description: "Version number to be released"
+        required: true
 
 permissions:
   contents: write
@@ -36,7 +41,7 @@ jobs:
           NEW_VERSION: ${{ steps.set_version.outputs.new_version }}
         with:
           script: |
-            const newVersion = process.env.NEW_VERSION.trim();            
+            const newVersion = process.env.NEW_VERSION.trim();
             const branch = `release/${newVersion}`;
             const owner = context.repo.owner;
             const repo = context.repo.repo;
@@ -120,7 +125,7 @@ jobs:
                 continue;
               }
 
-              changelog.push(`* ${changeLogLabel.charAt(0).toUpperCase()}${changeLogLabel.slice(1)} - ${pr.title} by @${pr.user.login} in #${prNumber}`);              
+              changelog.push(`* ${changeLogLabel.charAt(0).toUpperCase()}${changeLogLabel.slice(1)} - ${pr.title} by @${pr.user.login} in #${prNumber}`);
             }
 
             const date = new Date();
