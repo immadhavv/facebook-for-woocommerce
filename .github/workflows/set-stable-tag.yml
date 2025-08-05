@@ -3,11 +3,10 @@ name: Set Stable Tag
 on: workflow_dispatch
 
 jobs:
-    # test-final-checks:
-    #   uses: ./.github/workflows/final-qa-checks.yml
+    test-final-checks:
+      uses: ./.github/workflows/final-qa-checks.yml
 
-    build-and-upload:
-      uses: ./.github/workflows/release-plugin.yml
+
 
   # set-stable-tag:
   #   runs-on: ubuntu-latest
