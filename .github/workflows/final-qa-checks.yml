@@ -25,7 +25,6 @@ jobs:
       # - name: Get runs
 
 
-      steps:
       - name: Setup gh CLI
         uses: cli/gh-action@v2
 
