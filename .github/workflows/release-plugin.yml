@@ -2,6 +2,8 @@ name: Release Plugin
 
 on:
   workflow_dispatch:
+    with:
+      version: 1.0.0
   workflow_call:
 
 
