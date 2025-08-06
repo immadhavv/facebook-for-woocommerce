@@ -41,7 +41,7 @@ jobs:
           expected_branch="release/$version"
 
           # First check if the API returns any results
-          response=$(gh api repos/${{ github.repository }}/actions/workflows/prepare-release.yml/runs -jq '.')
+          response=$(gh api repos/${{ github.repository }}/actions/workflows/prepare-release.yml/runs -q '.')
 
           # Check if we got a 404 error
           if echo "$response" | grep -q '"status":"404"'; then
