@@ -14,6 +14,12 @@ jobs:
     environment: Deployment
 
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Get NPM Version
+        id: package-version
+        uses: martinbeentjes/npm-get-version-action@v1.3.1
+
       - name: Download latest release artifact
         run: |
           # Install GitHub CLI
@@ -25,20 +31,27 @@ jobs:
            # Authenticate with GitHub CLI
           gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
 
-        # TODO Check which branch it was based out of!!??
       - name: Get latest successful prepare-release run ID
         id: get_run
         run: |
           gh api \
             repos/${{ github.repository }}/actions/workflows/prepare-release.yml/runs | jq .
 
+          version="${{ steps.package-version.outputs.current-version }}"
+          expected_branch="release/$version"
 
-          run_id=$(gh api \
-            repos/${{ github.repository }}/actions/workflows/prepare-release.yml/runs \
-            --jq '.workflow_runs[] | select(.conclusion == "success") | .id' \
-            --paginate | head -n1)
+          # First check if the API returns any results
+          response=$(gh api repos/${{ github.repository }}/actions/workflows/prepare-release.yml/runs -jq '.')
 
-          # TODO Check for errors. that is also taken as successful response right now
+          # Check if we got a 404 error
+          if echo "$response" | grep -q '"status":"404"'; then
+            echo "❌ No workflow runs found for prepare-release"
+            exit 1
+          fi
+
+          # Now filter for successful runs with the expected branch
+          run_id=$(echo "$response" | jq -r ".workflow_runs[] | select(.conclusion == \"success\" and .head_branch == \"$expected_branch\") | .id" | head -n1)
+
           if [ -z "$run_id" ]; then
             echo "❌ No successful run found for prepare-release"
             exit 1
