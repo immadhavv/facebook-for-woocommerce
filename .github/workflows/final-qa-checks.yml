@@ -35,7 +35,6 @@ jobs:
         id: get_run
         run: |
           version="${{ steps.package-version.outputs.current-version }}"
-          expected_branch="main"
 
           # First check if the API returns any results
           response=$(gh api repos/${{ github.repository }}/actions/workflows/prepare-release.yml/runs -q '.')
@@ -46,8 +45,9 @@ jobs:
             exit 1
           fi
 
-          # Now filter for successful runs with the expected branch
-          run_id=$(echo "$response" | jq -r ".workflow_runs[] | select(.conclusion == \"success\" and .head_branch == \"$expected_branch\") | .id" | head -n1)
+          # Now filter for successful runs
+          # Skipping branch filtering because we may end up releasing from a branch other than main
+          run_id=$(echo "$response" | jq -r ".workflow_runs[] | select(.conclusion == \"success\" ) | .id" | head -n1)
 
           if [ -z "$run_id" ]; then
             echo "❌ No successful run found for prepare-release from main branch"
