@@ -26,16 +26,17 @@ jobs:
           gh auth login --with-token <<< "${{ secrets.GITHUB_TOKEN }}"
 
         # TODO Check which branch it was based out of!!??
-      - name: Get latest successful shared-build-plugin-artifact run ID
+      - name: Get latest successful prepare-release run ID
         id: get_run
         run: |
           run_id=$(gh api \
-            repos/${{ github.repository }}/actions/workflows/shared-build-plugin-artifact.yml/runs \
+            repos/${{ github.repository }}/actions/workflows/prepare-release.yml/runs \
             --jq '.workflow_runs[] | select(.conclusion == "success") | .id' \
             --paginate | head -n1)
 
+          # TODO Check for errors. that is also taken as successful response right now
           if [ -z "$run_id" ]; then
-            echo "❌ No successful run found for shared-build-plugin-artifact"
+            echo "❌ No successful run found for prepare-release"
             exit 1
           fi
 
