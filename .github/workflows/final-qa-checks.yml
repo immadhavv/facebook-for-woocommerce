@@ -38,7 +38,7 @@ jobs:
             repos/${{ github.repository }}/actions/workflows/prepare-release.yml/runs | jq .
 
           version="${{ steps.package-version.outputs.current-version }}"
-          expected_branch="release/$version"
+          expected_branch="main"
 
           # First check if the API returns any results
           response=$(gh api repos/${{ github.repository }}/actions/workflows/prepare-release.yml/runs -q '.')
