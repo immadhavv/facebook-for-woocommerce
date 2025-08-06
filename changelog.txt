@@ -1,5 +1,6 @@
 *** Facebook for WooCommerce Changelog ***
 
+
 = 3.5.5 - 2025-07-23 =
 * Fix - Updated the links to Meta Support by @vahidkay-meta in #3523
 * Fix - Improving AAM settings params being captured + Purchase events captured by Pixel by @vahidkay-meta in #3512
