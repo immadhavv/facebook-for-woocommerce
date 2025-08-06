@@ -86,132 +86,132 @@ jobs:
       #     git rev-list ${{ steps.get_release.outputs.latest_tag }}..HEAD >> $GITHUB_OUTPUT
       #     echo "EOF" >> $GITHUB_OUTPUT
 
-      # - name: Build changelog from PRs
-      #   id: changelog
-      #   uses: actions/github-script@v7
-      #   env:
-      #     COMMITS: ${{ steps.get_commits.outputs.commits }}
-      #     NEW_VERSION: ${{ steps.set_version.outputs.new_version }}
-      #   with:
-      #     script: |
-      #       const newVersion = process.env.NEW_VERSION.trim();
-      #       const commits = process.env.COMMITS.trim().split('\n');
-      #       const changelog = [];
+      - name: Build changelog from PRs
+        id: changelog
+        uses: actions/github-script@v7
+        env:
+          COMMITS: ${{ steps.get_commits.outputs.commits }}
+          NEW_VERSION: ${{ steps.set_version.outputs.new_version }}
+        with:
+          script: |
+            const newVersion = process.env.NEW_VERSION.trim();
+            const commits = process.env.COMMITS.trim().split('\n');
+            const changelog = [];
 
-      #       for (const sha of commits) {
-      #         const commit = await github.rest.repos.getCommit({
-      #           owner: context.repo.owner,
-      #           repo: context.repo.repo,
-      #           ref: sha,
-      #         });
+            for (const sha of commits) {
+              const commit = await github.rest.repos.getCommit({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: sha,
+              });
 
-      #         const msg = commit.data.commit.message;
-      #         const prMatch = msg.match(/\(#(\d+)\)/);
-      #         if (!prMatch) {
-      #           continue;
-      #         }
+              const msg = commit.data.commit.message;
+              const prMatch = msg.match(/\(#(\d+)\)/);
+              if (!prMatch) {
+                continue;
+              }
 
-      #         const prNumber = parseInt(prMatch[1], 10);
-      #         pr = (await github.rest.pulls.get({
-      #           owner: context.repo.owner,
-      #           repo: context.repo.repo,
-      #           pull_number: prNumber,
-      #         })).data;
-      #         const labelPrefix = "changelog:";
-      #         const changeLogLabels = pr.labels.map(l => l.name).filter((l) => l.startsWith(labelPrefix)).map(l => l.replace(labelPrefix, "").trim());
-      #         if (changeLogLabels.length === 0){
-      #           continue;
-      #         }
+              const prNumber = parseInt(prMatch[1], 10);
+              pr = (await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber,
+              })).data;
+              const labelPrefix = "changelog:";
+              const changeLogLabels = pr.labels.map(l => l.name).filter((l) => l.startsWith(labelPrefix)).map(l => l.replace(labelPrefix, "").trim());
+              if (changeLogLabels.length === 0){
+                continue;
+              }
 
-      #         const changeLogLabel = changeLogLabels[0];
-      #         if (changeLogLabel.toLowerCase() === 'none'){
-      #           continue;
-      #         }
+              const changeLogLabel = changeLogLabels[0];
+              if (changeLogLabel.toLowerCase() === 'none'){
+                continue;
+              }
 
-      #         changelog.push(`* ${changeLogLabel.charAt(0).toUpperCase()}${changeLogLabel.slice(1)} - ${pr.title} by @${pr.user.login} in #${prNumber}`);
-      #       }
+              changelog.push(`* ${changeLogLabel.charAt(0).toUpperCase()}${changeLogLabel.slice(1)} - ${pr.title} by @${pr.user.login} in #${prNumber}`);
+            }
 
-      #       const date = new Date();
-      #       const output = `= ${newVersion} - ${date.toISOString().slice(0, 10)} =\n${changelog.join('\n')}\n`;
-      #       core.setOutput('changelog', output);
-      #       console.log(output);
+            const date = new Date();
+            const output = `= ${newVersion} - ${date.toISOString().slice(0, 10)} =\n${changelog.join('\n')}\n`;
+            core.setOutput('changelog', output);
+            console.log(output);
 
-      # - name: Configure Git
-      #   run: |
-      #     git config user.name "github-actions[bot]"
-      #     git config user.email "github-actions[bot]@users.noreply.github.com"
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
-      # - name: Create new branch locally
-      #   env:
-      #     NEW_VERSION: ${{ steps.set_version.outputs.new_version }}
-      #   run: |
-      #     git checkout -b "release/$NEW_VERSION"
+      - name: Create new branch locally
+        env:
+          NEW_VERSION: ${{ steps.set_version.outputs.new_version }}
+        run: |
+          git checkout -b "release/$NEW_VERSION"
 
-      # - name: Update package.json
-      #   env:
-      #     NEW_VERSION: ${{ steps.set_version.outputs.new_version }}
-      #   run: |
-      #     sed -i -E "s/^  \"version\":[[:space:]]*\"[^\"]*\"[[:space:]]*,/  \"version\": \"$NEW_VERSION\",/" "package.json"
-      #     git diff
+      - name: Update package.json
+        env:
+          NEW_VERSION: ${{ steps.set_version.outputs.new_version }}
+        run: |
+          sed -i -E "s/^  \"version\":[[:space:]]*\"[^\"]*\"[[:space:]]*,/  \"version\": \"$NEW_VERSION\",/" "package.json"
+          git diff
 
-      # - name: Update facebook-for-woocommerce.php
-      #   env:
-      #     NEW_VERSION: ${{ steps.set_version.outputs.new_version }}
-      #   run: |
-      #     sed -i -E "s/^ \* Version:.*/ \* Version: $NEW_VERSION/" "facebook-for-woocommerce.php"
-      #     sed -i -E "s/^([[:space:]]*const PLUGIN_VERSION = ')[^']*(';.*)/\1$NEW_VERSION\2/" "facebook-for-woocommerce.php"
-      #     git diff
+      - name: Update facebook-for-woocommerce.php
+        env:
+          NEW_VERSION: ${{ steps.set_version.outputs.new_version }}
+        run: |
+          sed -i -E "s/^ \* Version:.*/ \* Version: $NEW_VERSION/" "facebook-for-woocommerce.php"
+          sed -i -E "s/^([[:space:]]*const PLUGIN_VERSION = ')[^']*(';.*)/\1$NEW_VERSION\2/" "facebook-for-woocommerce.php"
+          git diff
 
-      # - name: Update changelog.txt
-      #   uses: actions/github-script@v7
-      #   env:
-      #     CHANGELOG_TEXT: ${{ steps.changelog.outputs.changelog }}
-      #   with:
-      #     script: |
-      #       const fs = require('fs');
-      #       const filePath = 'changelog.txt';
-      #       let content = fs.readFileSync(filePath).toString().split('\n');
-      #       const newLines = process.env.CHANGELOG_TEXT.split(/\r?\n/);
-      #       content.splice(2, 0, ...newLines);
-      #       fs.writeFileSync(filePath, content.join('\n'));
+      - name: Update changelog.txt
+        uses: actions/github-script@v7
+        env:
+          CHANGELOG_TEXT: ${{ steps.changelog.outputs.changelog }}
+        with:
+          script: |
+            const fs = require('fs');
+            const filePath = 'changelog.txt';
+            let content = fs.readFileSync(filePath).toString().split('\n');
+            const newLines = process.env.CHANGELOG_TEXT.split(/\r?\n/);
+            content.splice(2, 0, ...newLines);
+            fs.writeFileSync(filePath, content.join('\n'));
 
-      # - name: Update readme.txt
-      #   uses: actions/github-script@v7
-      #   env:
-      #     CHANGELOG_TEXT: ${{ steps.changelog.outputs.changelog }}
-      #   with:
-      #     script: |
-      #       const fs = require('fs');
-      #       const filePath = 'readme.txt';
-      #       let content = fs.readFileSync(filePath).toString().split('\n');
-      #       const markerIndex = content.findIndex(line => line.trim().toLowerCase() === '== changelog ==');
-      #       if (markerIndex === -1) {
-      #         throw new Error('Marker not found in file');
-      #       }
+      - name: Update readme.txt
+        uses: actions/github-script@v7
+        env:
+          CHANGELOG_TEXT: ${{ steps.changelog.outputs.changelog }}
+        with:
+          script: |
+            const fs = require('fs');
+            const filePath = 'readme.txt';
+            let content = fs.readFileSync(filePath).toString().split('\n');
+            const markerIndex = content.findIndex(line => line.trim().toLowerCase() === '== changelog ==');
+            if (markerIndex === -1) {
+              throw new Error('Marker not found in file');
+            }
 
-      #       function shouldRemove(line) {
-      #         const trimmed = line.trim();
-      #         return trimmed === '' || trimmed.startsWith('=') || trimmed.startsWith('*');
-      #       }
+            function shouldRemove(line) {
+              const trimmed = line.trim();
+              return trimmed === '' || trimmed.startsWith('=') || trimmed.startsWith('*');
+            }
 
-      #       let i = markerIndex + 1;
-      #       // Remove all lines starting with "*" after the marker
-      #       while (i < content.length && shouldRemove(content[i])) {
-      #         content.splice(i, 1); // Don't increment i since we're removing current line
-      #       }
-      #       const newLines = process.env.CHANGELOG_TEXT.split(/\r?\n/);
-      #       newLines.unshift("");
-      #       content.splice(i, 0, ...newLines);
-      #       fs.writeFileSync(filePath, content.join('\n'));
+            let i = markerIndex + 1;
+            // Remove all lines starting with "*" after the marker
+            while (i < content.length && shouldRemove(content[i])) {
+              content.splice(i, 1); // Don't increment i since we're removing current line
+            }
+            const newLines = process.env.CHANGELOG_TEXT.split(/\r?\n/);
+            newLines.unshift("");
+            content.splice(i, 0, ...newLines);
+            fs.writeFileSync(filePath, content.join('\n'));
 
-      # - name: Commit and Push
-      #   env:
-      #     NEW_VERSION: ${{ steps.set_version.outputs.new_version }}
-      #   run: |
-      #     git diff
-      #     git add .
-      #     git commit -m "Updating version to $NEW_VERSION"
-      #     git push origin HEAD
+      - name: Commit and Push
+        env:
+          NEW_VERSION: ${{ steps.set_version.outputs.new_version }}
+        run: |
+          git diff
+          git add .
+          git commit -m "Updating version to $NEW_VERSION"
+          git push origin HEAD
 
   build-and-upload:
     needs: prepare-release
