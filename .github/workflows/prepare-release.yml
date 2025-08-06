@@ -70,13 +70,13 @@ jobs:
       #       core.setOutput("latest_tag", tag);
       #       console.log("Latest release tag:", tag);
 
-      - name: Get commits since latest release
-        id: get_commits
-        run: |
-          git fetch origin tag ${{ steps.get_release.outputs.latest_tag }}
-          echo "commits<<EOF" >> $GITHUB_OUTPUT
-          git rev-list ${{ steps.get_release.outputs.latest_tag }}..HEAD >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+      # - name: Get commits since latest release
+      #   id: get_commits
+      #   run: |
+      #     git fetch origin tag ${{ steps.get_release.outputs.latest_tag }}
+      #     echo "commits<<EOF" >> $GITHUB_OUTPUT
+      #     git rev-list ${{ steps.get_release.outputs.latest_tag }}..HEAD >> $GITHUB_OUTPUT
+      #     echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Build changelog from PRs
         id: changelog
