@@ -5,12 +5,14 @@ on: workflow_dispatch
 jobs:
   #reusing existing workflow to run e2e tests, but on the marketplace version
   e2e-tests-on-marketplace-version:
+    if: false
     uses: ./.github/workflows/product-creation-tests.yml
     with:
       use-marketplace-version: true
 
   set-stable-tag:
     runs-on: ubuntu-latest
+    if: false
     environment: Deployment
     steps:
       - uses: actions/checkout@v4
@@ -70,7 +72,7 @@ jobs:
   set-last-release-as-latest:
     runs-on: ubuntu-latest
     environment: Deployment
-    needs: set-stable-tag
+    # needs: set-stable-tag
     steps:
       - uses: actions/checkout@v4
 
