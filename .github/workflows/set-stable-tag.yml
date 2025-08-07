@@ -93,7 +93,6 @@ jobs:
 
       - name: get release by tag
         id: get-release-by-tag
-        uses: actions/github-script@v6
         run: |
           version="${{ steps.package-version.outputs.current-version }}"
 
