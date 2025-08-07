@@ -95,6 +95,20 @@ jobs:
          unzip marketplace.zip -d marketplace-version
          echo "Downloaded marketplace version of plugin to marketplace-version directory"
 
+      - name: Check version of marketplace version pulled
+        run: |
+          stable_tag=$(grep -E '^Stable tag:' marketplace-version/facebook-for-woocommerce/readme.txt | awk -F': ' '{print $2}' | xargs)
+          echo "Stable tag from marketplace version is $stable_tag"
+
+          release_version="${{ steps.package-version.outputs.current-version }}"
+
+          if [[ "$stable_tag" != "$release_version" ]]; then
+            echo "❌ Version mismatch! Marketplace version is $stable_tag, but release version is $release_version"
+            exit 1
+          else
+            echo "✅ Version matches."
+          fi
+
       # Compare the two artifacts
       - name: Compare the two artifacts
         id: compare
