@@ -39,23 +39,24 @@ jobs:
           # First check if the API returns any results
           response=$(gh api repos/${{ github.repository }}/actions/workflows/prepare-release.yml/runs -q '.')
 
-          # Check if we got a 404 error
-          if echo "$response" | grep -q '"status":"404"'; then
+          # Check if we got a 404 error or empty response
+          if echo "$response" | grep -q '"status":"404"' || [ -z "$response" ]; then
             echo "❌ No workflow runs found for prepare-release"
             exit 1
           fi
 
-          # Now filter for successful runs
+          # Now get latest run and check if it was successful
           # Skipping branch filtering because we may end up releasing from a branch other than main
-          run_id=$(echo "$response" | jq -r ".workflow_runs[] | select(.conclusion == \"success\" ) | .id" | head -n1)
+          latest_run=$(echo "$response" | jq '.workflow_runs[0]')
+          conclusion=$(echo "$latest_run" | jq -r '.conclusion')
 
-          if [ -z "$run_id" ]; then
-            echo "❌ No successful run found for prepare-release from main branch"
-            exit 1
+          if [ "$conclusion" == "success" ]; then
+            run_id=$(echo "$latest_run" | jq -r '.id')
+            echo "✅ Latest run was successful: $run_id"
+          else
+            echo "❌ Latest run was not successful: $conclusion"
+            run_id=""
           fi
-
-          echo "✅ Found run ID: $run_id"
-          echo "run_id=$run_id" >> $GITHUB_OUTPUT
 
       - name: Get artifact ID for facebook-for-woocommerce
         id: compare-artifacts
@@ -87,23 +88,17 @@ jobs:
 
 
       # Download marketplace version
-      - name: Install SVN
-        run: sudo apt-get install subversion -y
-
-      - name: Checkout SVN Repository
-        run: svn co https://plugins.svn.wordpress.org/facebook-for-woocommerce/ svn_repo --quiet --non-interactive
-
-      - name: Extract SVN trunk
+      - name: Download marketplace version
         run: |
-          mkdir -p marketplace-version
-          cp -r svn_repo/trunk/* marketplace-version/
-          echo "Downloaded SVN trunk to marketplace-version directory"
+         curl -L https://downloads.wordpress.org/plugin/facebook-for-woocommerce.zip -o marketplace.zip
+         unzip marketplace.zip -d marketplace-version
+         echo "Downloaded marketplace version of plugin to marketplace-version directory"
 
       # Compare the two artifacts
       - name: Compare the two artifacts
         id: compare
         run: |
-          diff -r downloaded-plugin/facebook-for-woocommerce marketplace-version > diff_output.txt || DIFF_EXIT=$?
+          diff -r downloaded-plugin/facebook-for-woocommerce marketplace-version/facebook-for-woocommerce > diff_output.txt || DIFF_EXIT=$?
 
           # Check if there are differences
           if [ -s diff_output.txt ]; then
