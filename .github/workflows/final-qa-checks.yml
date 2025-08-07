@@ -36,27 +36,28 @@ jobs:
         run: |
           version="${{ steps.package-version.outputs.current-version }}"
 
-          # First check if the API returns any results
-          response=$(gh api repos/${{ github.repository }}/actions/workflows/prepare-release.yml/runs -q '.')
+          # Get the latest workflow run (only 1 result)
+          latest_run=$(gh api repos/${{ github.repository }}/actions/workflows/prepare-release.yml/runs \
+            --field per_page=1 \
+            --jq '.workflow_runs[0]')
 
-          # Check if we got a 404 error or empty response
-          if echo "$response" | grep -q '"status":"404"' || [ -z "$response" ]; then
+          # Check if the API returned anything
+          if [ -z "$latest_run" ]; then
             echo "❌ No workflow runs found for prepare-release"
             exit 1
           fi
 
-          # Now get latest run and check if it was successful
-          # Skipping branch filtering because we may end up releasing from a branch other than main
-          latest_run=$(echo "$response" | jq '.workflow_runs[0]')
+          # Check if the latest run was successful
           conclusion=$(echo "$latest_run" | jq -r '.conclusion')
-
           if [ "$conclusion" == "success" ]; then
             run_id=$(echo "$latest_run" | jq -r '.id')
             echo "✅ Latest run was successful: $run_id"
+            echo "run_id=$run_id" >> $GITHUB_OUTPUT
           else
             echo "❌ Latest run was not successful: $conclusion"
-            run_id=""
+            exit 1
           fi
+
 
       - name: Get artifact ID for facebook-for-woocommerce
         id: compare-artifacts
