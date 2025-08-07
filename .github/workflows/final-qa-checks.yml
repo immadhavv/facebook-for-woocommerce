@@ -97,10 +97,11 @@ jobs:
 
       - name: Check version of marketplace version pulled
         run: |
-          stable_tag=$(grep -E '^Stable tag:' marketplace-version/facebook-for-woocommerce/readme.txt | awk -F': ' '{print $2}' | xargs)
-          echo "Stable tag from marketplace version is $stable_tag"
+          stable_tag=$(grep -m1 -E '^Stable tag:' marketplace-version/facebook-for-woocommerce/readme.txt | awk -F': ' '{print $2}' | tr -d '\n\r' | xargs)
+          echo "Stable tag from marketplace version is '$stable_tag'"
 
           release_version="${{ steps.package-version.outputs.current-version }}"
+          echo "Release version is '$release_version'"
 
           if [[ "$stable_tag" != "$release_version" ]]; then
             echo "❌ Version mismatch! Marketplace version is $stable_tag, but release version is $release_version"
