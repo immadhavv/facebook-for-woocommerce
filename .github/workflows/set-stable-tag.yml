@@ -125,7 +125,7 @@ jobs:
             -H "Accept: application/vnd.github+json" \
             -H "X-GitHub-Api-Version: 2022-11-28" \
             "/repos/${{ github.repository }}/releases/${release_id}" \
-            -F "make_latest=true" || echo '{"message":"Error"}')
+            -f "prerelease=false" -f "make_latest=true" || echo '{"message":"Error"}')
 
           if echo "$update_response" | grep -q '"message":"Error"'; then
             echo "❌ Failed to update release v${version} as latest"
