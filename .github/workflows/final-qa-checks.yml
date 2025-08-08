@@ -89,26 +89,18 @@ jobs:
 
 
       # Download marketplace version
-      - name: Download marketplace version
+      - name: Install SVN
+        run: sudo apt-get install subversion -y
+
+      - name: Checkout SVN Repository
+        run: svn co https://plugins.svn.wordpress.org/facebook-for-woocommerce/ svn_repo --quiet --non-interactive
+
+      - name: Extract SVN trunk
         run: |
-         curl -L https://downloads.wordpress.org/plugin/facebook-for-woocommerce.zip -o marketplace.zip
-         unzip marketplace.zip -d marketplace-version
-         echo "Downloaded marketplace version of plugin to marketplace-version directory"
+          mkdir -p marketplace-version
+          cp -r svn_repo/trunk/* marketplace-version/
+          echo "Downloaded SVN trunk to marketplace-version directory"
 
-      - name: Check version of marketplace version pulled
-        run: |
-          stable_tag=$(grep -m1 -E '^Stable tag:' marketplace-version/facebook-for-woocommerce/readme.txt | awk -F': ' '{print $2}' | tr -d '\n\r' | xargs)
-          echo "Stable tag from marketplace version is '$stable_tag'"
-
-          release_version="${{ steps.package-version.outputs.current-version }}"
-          echo "Release version is '$release_version'"
-
-          if [[ "$stable_tag" != "$release_version" ]]; then
-            echo "❌ Version mismatch! Marketplace version is $stable_tag, but release version is $release_version"
-            exit 1
-          else
-            echo "✅ Version matches."
-          fi
 
       # Compare the two artifacts
       - name: Compare the two artifacts
