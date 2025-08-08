@@ -103,7 +103,7 @@ jobs:
           # Get the most recent successful run ID
           run_id=$(echo "$workflow_runs" | jq -r '.workflow_runs[0].id // empty')
 
-          if [ -z "$run_id" ] || [ "$run_id" = "null" || "$run_id" = "" ]; then
+          if [ -z "$run_id" ] || [ "$run_id" = "null" ] || [ "$run_id" = "" ]; then
             echo "❌ No successful release workflow runs found"
             exit 1
           fi
@@ -152,7 +152,7 @@ jobs:
             -H "X-GitHub-Api-Version: 2022-11-28" \
             "/repos/${{ github.repository }}/releases/${release_id}" \
             -f "prerelease=false" -f "make_latest=true" || echo '{"message":"Error"}')
-
+          cat "$update_response"
           if echo "$update_response" | grep -q '"message":"Error"'; then
             echo "❌ Failed to update release v${version} as latest"
             exit 1
