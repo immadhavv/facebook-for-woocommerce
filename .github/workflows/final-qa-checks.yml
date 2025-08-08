@@ -106,7 +106,7 @@ jobs:
       - name: Compare the two artifacts
         id: compare
         run: |
-          diff -r downloaded-plugin/facebook-for-woocommerce marketplace-version/facebook-for-woocommerce > diff_output.txt || DIFF_EXIT=$?
+          diff -r downloaded-plugin/facebook-for-woocommerce marketplace-version > diff_output.txt || DIFF_EXIT=$?
 
           # Check if there are differences
           if [ -s diff_output.txt ]; then
