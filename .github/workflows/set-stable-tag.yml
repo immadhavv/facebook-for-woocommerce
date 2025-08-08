@@ -3,8 +3,8 @@ name: Set Stable Tag
 on: workflow_dispatch
 
 jobs:
-  if: false
   final-qa-checks:
+    if: false
     uses: ./.github/workflows/final-qa-checks.yml
 
   set-stable-tag:
