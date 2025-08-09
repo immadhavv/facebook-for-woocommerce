@@ -167,6 +167,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: get npm version
+        id: package-version
+        uses: martinbeentjes/npm-get-version-action@v1.3.1
+
       - name: Get head commit of release publish branch
         run: |
           version="${{ steps.package-version.outputs.current-version }}"
@@ -194,6 +198,7 @@ jobs:
 
           echo "✅ Found commit SHA: $commit_sha"
           echo "commit_sha=$commit_sha" >> $GITHUB_OUTPUT
+
       - name: Create Git tag for commit
         run: |
           version="${{ steps.package-version.outputs.current-version }}"
