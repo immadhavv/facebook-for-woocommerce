@@ -170,7 +170,7 @@ jobs:
       - name: Get head commit of release publish branch
         run: |
           version="${{ steps.package-version.outputs.current-version }}"
-          branch="main"
+          branch_name="main"
           # branch_name="release/$version/publish"
 
           echo "Getting head commit for branch: $branch_name"
