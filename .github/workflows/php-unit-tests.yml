@@ -30,7 +30,7 @@ jobs:
         uses: woocommerce/grow/prepare-php@actions-v1
         with:
           php-version: "${{ matrix.php }}"
-          extensions: xdebug
+          coverage: xdebug
 
       - name: Prepare MySQL
         uses: woocommerce/grow/prepare-mysql@actions-v1
