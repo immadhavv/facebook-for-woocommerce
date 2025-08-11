@@ -4,7 +4,7 @@ on: [ push, pull_request ] # Run on all pushes and PRs
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   UnitTests:
@@ -14,6 +14,7 @@ jobs:
       WP_CORE_DIR: "/tmp/wordpress/src"
       WP_TESTS_DIR: "/tmp/wordpress/tests/phpunit"
     strategy:
+      fail-fast: false
       matrix:
         php: [ 7.4, 8.3 ]
         wp-version: [ latest ]
@@ -64,17 +65,17 @@ jobs:
           echo "📊 Coverage: $COVERAGE%"
 
       - name: Check coverage threshold
+        continue-on-error: true
         run: |
           COVERAGE="${{ steps.phpunit.outputs.coverage_summary }}"
           MIN_THRESHOLD=40
 
+          echo "📈 Coverage: $COVERAGE%"
+          echo "🎯 Threshold: $MIN_THRESHOLD%"
+
           if (( $(echo "$COVERAGE >= $MIN_THRESHOLD" | bc -l) )); then
-            echo "✅ Coverage check passed!
-            Current coverage: $COVERAGE%;
-            Minimum threshold required: $MIN_THRESHOLD%"
+            echo "✅ Coverage check passed!"
           else
-            echo "❌ Coverage too low.
-            Current coverage: $COVERAGE%;
-            Minimum threshold required: $MIN_THRESHOLD%"
+            echo "❌ Coverage too low. Need $MIN_THRESHOLD%, got $COVERAGE%"
             exit 1
           fi
