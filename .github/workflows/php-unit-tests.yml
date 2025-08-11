@@ -43,34 +43,38 @@ jobs:
       - name: Run PHP unit tests with coverage
         id: phpunit
         run: |
-          ./vendor/bin/phpunit --coverage-text --coverage-filter=summary --coverage-clover=coverage.xml 2>&1 | tee phpunit_output.txt
+          # Run tests silently and generate coverage XML only
+          ./vendor/bin/phpunit --coverage-clover=coverage.xml > /dev/null 2>&1
 
-          # Extract just the summary line from coverage output
-          COVERAGE=$(grep -E "^\s*Lines:" phpunit_output.txt | tail -1 | sed 's/^[[:space:]]*//')
-          if [ -z "$COVERAGE" ]; then
-            # Fallback: extract from clover XML if text parsing fails
-            COVERAGE=$(php -r "
-              if (file_exists('coverage.xml')) {
-                \$xml = simplexml_load_file('coverage.xml');
-                \$metrics = \$xml->project->metrics;
-                \$covered = (int)\$metrics['coveredstatements'];
-                \$total = (int)\$metrics['statements'];
-                \$percentage = \$total > 0 ? round((\$covered / \$total) * 100, 2) : 0;
-                echo \"Lines: \$covered/\$total (\$percentage%)\";
-              } else {
-                echo 'Coverage data not available';
-              }
-            ")
-          fi
+          # Extract coverage summary from XML
+          COVERAGE=$(php -r "
+            if (file_exists('coverage.xml')) {
+              \$xml = simplexml_load_file('coverage.xml');
+              \$metrics = \$xml->project->metrics;
+              \$covered = (int)\$metrics['coveredstatements'];
+              \$total = (int)\$metrics['statements'];
+              \$percentage = \$total > 0 ? round((\$covered / \$total) * 100, 2) : 0;
+              echo \$percentage;
+            } else {
+              echo '0';
+            }
+          ")
 
           echo "coverage_summary=$COVERAGE" >> $GITHUB_OUTPUT
-          echo "📊 Coverage Summary: $COVERAGE"
+          echo "📊 Coverage: $COVERAGE%"
 
-      - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v3
-        if: always()
-        with:
-          file: ./coverage.xml
-          flags: unittests
-          name: codecov-umbrella
-          fail_ci_if_error: false
+      - name: Check coverage threshold
+        run: |
+          COVERAGE="${{ steps.phpunit.outputs.coverage_summary }}"
+          MIN_THRESHOLD=40
+
+          if (( $(echo "$COVERAGE >= $MIN_THRESHOLD" | bc -l) )); then
+            echo "✅ Coverage check passed!
+            Current coverage: $COVERAGE%;
+            Minimum threshold required: $MIN_THRESHOLD%"
+          else
+            echo "❌ Coverage too low.
+            Current coverage: $COVERAGE%;
+            Minimum threshold required: $MIN_THRESHOLD%"
+            exit 1
+          fi
