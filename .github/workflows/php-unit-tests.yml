@@ -41,10 +41,34 @@ jobs:
           ./bin/install-wp-tests.sh wordpress_test root root localhost ${{ matrix.wp-version }} ${{ matrix.wc-version }}
 
       - name: Run PHP unit tests with coverage
-        run: ./vendor/bin/phpunit --coverage-text --coverage-clover=coverage.xml
+        id: phpunit
+        run: |
+          ./vendor/bin/phpunit --coverage-text --coverage-filter=summary --coverage-clover=coverage.xml 2>&1 | tee phpunit_output.txt
+
+          # Extract just the summary line from coverage output
+          COVERAGE=$(grep -E "^\s*Lines:" phpunit_output.txt | tail -1 | sed 's/^[[:space:]]*//')
+          if [ -z "$COVERAGE" ]; then
+            # Fallback: extract from clover XML if text parsing fails
+            COVERAGE=$(php -r "
+              if (file_exists('coverage.xml')) {
+                \$xml = simplexml_load_file('coverage.xml');
+                \$metrics = \$xml->project->metrics;
+                \$covered = (int)\$metrics['coveredstatements'];
+                \$total = (int)\$metrics['statements'];
+                \$percentage = \$total > 0 ? round((\$covered / \$total) * 100, 2) : 0;
+                echo \"Lines: \$covered/\$total (\$percentage%)\";
+              } else {
+                echo 'Coverage data not available';
+              }
+            ")
+          fi
+
+          echo "coverage_summary=$COVERAGE" >> $GITHUB_OUTPUT
+          echo "📊 Coverage Summary: $COVERAGE"
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v3
+        if: always()
         with:
           file: ./coverage.xml
           flags: unittests
