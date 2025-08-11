@@ -65,7 +65,7 @@ jobs:
           echo "📊 Coverage: $COVERAGE%"
 
       - name: Check coverage threshold
-        continue-on-error: true
+
         run: |
           COVERAGE="${{ steps.phpunit.outputs.coverage_summary }}"
           MIN_THRESHOLD=40

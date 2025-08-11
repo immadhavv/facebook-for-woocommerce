@@ -70,13 +70,9 @@ jobs:
           
           # Extract coverage summary from JSON
           COVERAGE=$(node -e "
-            try {
-              const fs = require('fs');
-              const coverage = JSON.parse(fs.readFileSync('coverage/coverage-summary.json', 'utf8'));
-              console.log(coverage.total.lines.pct);
-            } catch (e) {
-              console.log('0');
-            }
+            const fs = require('fs');
+            const coverage = JSON.parse(fs.readFileSync('coverage/coverage-summary.json', 'utf8'));
+            console.log(coverage.total.lines.pct);
           ")
           
           echo "coverage_summary=$COVERAGE" >> $GITHUB_OUTPUT
@@ -93,7 +89,6 @@ jobs:
           echo "📈 JS Coverage: $COVERAGE%"
           echo "🎯 JS Threshold: $MIN_THRESHOLD%"
           
-          # Simple comparison using bc (basic calculator)
           if (( $(echo "$COVERAGE >= $MIN_THRESHOLD" | bc -l) )); then
             echo "✅ JS Coverage check passed!"
           else
