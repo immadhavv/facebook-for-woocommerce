@@ -203,7 +203,7 @@ jobs:
 
           echo "Creating tag v${version} for commit ${commit_sha}"
 
-          # Create lightweight tag
+          # Create lightweight tag for commit
           tag_response=$(curl -s -X POST \
             -H "Accept: application/vnd.github+json" \
             -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
