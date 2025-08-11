@@ -65,9 +65,8 @@ jobs:
         id: jest
         if: steps.install.outputs.dependencies_installed == 'true'
         run: |
-          # Run Jest with coverage silently
-          npx jest --coverage --silent --coverageReporters=json-summary
-          npx jest --coverage --silent --coverageReporters=json-summary > /dev/null 2>&1
+          # Run Jest using npm script to ensure proper configuration
+          npm run test:js -- --coverage --coverageReporters=json-summary --coverageReporters=lcov --coverageReporters=html
 
           # Extract coverage summary from JSON
           COVERAGE=$(node -e "
@@ -80,6 +79,15 @@ jobs:
           echo "📊 JS Coverage: $COVERAGE%"
 
           echo "✅ JavaScript unit tests completed successfully"
+
+      - name: Upload coverage reports
+        if: false
+        # if: steps.install.outputs.dependencies_installed == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: js-coverage-report
+          path: coverage/
+          retention-days: 30
 
       - name: Check JS coverage threshold
         if: steps.install.outputs.dependencies_installed == 'true'
