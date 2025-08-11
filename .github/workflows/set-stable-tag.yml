@@ -69,7 +69,6 @@ jobs:
     runs-on: ubuntu-latest
     environment: Deployment
     needs: set-stable-tag
-    if: false
     steps:
       - uses: actions/checkout@v4
 
@@ -215,7 +214,7 @@ jobs:
           # Check for errors
           if echo "$tag_response" | grep -q '"Reference already exists"'; then
             echo "⚠️ Reference already exists"
-          else if echo "$tag_response" | grep -q '"message"'; then
+          elif echo "$tag_response" | grep -q '"message"'; then
             echo "❌ Failed to create tag v${version}"
             echo "Response: $tag_response"
             exit 1
