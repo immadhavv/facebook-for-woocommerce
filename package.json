@@ -72,6 +72,9 @@
     "test": "tests"
   },
   "jest": {
-    "testEnvironment": "jsdom"
+    "testEnvironment": "jsdom",
+    "testMatch": [
+    "**/tests/js/**/*.test.js"
+  ]
   }
 }
