@@ -70,7 +70,7 @@ jobs:
   set-last-release-as-latest:
     runs-on: ubuntu-latest
     environment: Deployment
-    # needs: set-stable-tag
+    needs: set-stable-tag
     if: false
     steps:
       - uses: actions/checkout@v4
@@ -162,7 +162,7 @@ jobs:
 
   tag-head-commit-of-release-publish-branch:
     runs-on: ubuntu-latest
-    # needs: set-stable-tag
+    needs: set-stable-tag
     environment: Deployment
     steps:
       - uses: actions/checkout@v4
@@ -175,8 +175,7 @@ jobs:
         id: get-commit
         run: |
           version="${{ steps.package-version.outputs.current-version }}"
-          branch_name="main"
-          # branch_name="release/$version/publish"
+          branch_name="release/$version/publish"
 
           echo "Getting head commit for branch: $branch_name"
 
@@ -216,7 +215,9 @@ jobs:
             "https://api.github.com/repos/${{ github.repository }}/git/refs")
 
           # Check for errors
-          if echo "$tag_response" | grep -q '"message"'; then
+          if echo "$tag_response" | grep -q '"Reference already exists"'; then
+            echo "⚠️ Reference already exists"
+          else if echo "$tag_response" | grep -q '"message"'; then
             echo "❌ Failed to create tag v${version}"
             echo "Response: $tag_response"
             exit 1
