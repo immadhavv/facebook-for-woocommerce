@@ -183,7 +183,7 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
   test('Create variable product with attributes - comprehensive test', async ({ page }) => {
     try {
       await loginToWordPress(page);
-      sds
+      //
       // Navigate to add new product page
       await page.goto(`${baseURL}/wp-admin/post-new.php?post_type=product`, {
         waitUntil: 'networkidle',
