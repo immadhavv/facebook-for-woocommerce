@@ -58,9 +58,9 @@ async function validateFacebookSync(productId, waitSeconds = 5) {
     const { promisify } = require('util');
     const execAsync = promisify(exec);
 
-    // Call our unified Facebook sync validator using relative path
+    // Call  unified Facebook sync validator
     const { stdout } = await execAsync(
-      `php ../../e2e-facebook-sync-validator.php ${productId} ${waitSeconds}`
+      `php e2e-facebook-sync-validator.php ${productId} ${waitSeconds}`
     );
 
     const result = JSON.parse(stdout);
@@ -112,7 +112,7 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
       await page.waitForSelector('#title', { timeout: 120000 });
 
       // Fill product details
-      await page.fill('#title', 'Test Simple Product - E2E 2');
+      await page.fill('#title', 'Test Simple Product - E2E 3');
 
       // Try to add content - handle different editor types
       try {

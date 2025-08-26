@@ -10,14 +10,46 @@
  * Returns JSON response with complete validation results
  */
 
-// Bootstrap WordPress
-$wp_load_path = dirname(__FILE__) . '/../../../wp-load.php';
-if (file_exists($wp_load_path)) {
-    require_once($wp_load_path);
-} else {
-    echo json_encode(['success' => false, 'error' => 'WordPress not found']);
+// Bootstrap WordPress - handle both local and GitHub Actions environments
+$possible_wp_paths = [
+    // Local development path (from tests/e2e/ to wp-load.php)
+    dirname(__FILE__) . '/../../../../../wp-load.php',
+    // GitHub Actions path (WordPress in /tmp/wordpress)
+    '/tmp/wordpress/wp-load.php',
+    // Alternative paths for different setups
+    dirname(__FILE__) . '/../../../../wp-load.php',
+    dirname(__FILE__) . '/../../../wp-load.php',
+    // Current directory (if run from WordPress root)
+    './wp-load.php',
+    // Parent directories
+    '../wp-load.php',
+    '../../wp-load.php',
+    '../../../wp-load.php',
+    '../../../../wp-load.php',
+    '../../../../../wp-load.php'
+];
+
+$wp_loaded = false;
+$successful_path = null;
+foreach ($possible_wp_paths as $wp_path) {
+    if (file_exists($wp_path)) {
+        require_once($wp_path);
+        $wp_loaded = true;
+        $successful_path = $wp_path;
+        break;
+    }
+}
+
+if (!$wp_loaded) {
+    echo json_encode([
+        'success' => false,
+        'error' => 'WordPress not found. Searched paths: ' . implode(', ', $possible_wp_paths)
+    ]);
     exit(1);
 }
+
+// Log which path was successful for debugging
+error_log("E2E Facebook Sync Validator: Successfully loaded WordPress from: " . $successful_path);
 
 /**
  * Facebook Sync Validator Class
