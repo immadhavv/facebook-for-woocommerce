@@ -44,6 +44,52 @@ async function safeScreenshot(page, path) {
   }
 }
 
+// Helper function to validate Facebook sync - REUSABLE across all tests
+async function validateFacebookSync(productId, waitSeconds = 5) {
+  if (!productId) {
+    console.log('⚠️ No product ID provided for Facebook sync validation');
+    return null;
+  }
+
+  console.log(`🔍 Validating Facebook sync for product ${productId}...`);
+
+  try {
+    const { exec } = require('child_process');
+    const { promisify } = require('util');
+    const execAsync = promisify(exec);
+
+    // Call our unified Facebook sync validator
+    const { stdout } = await execAsync(
+      `cd /Users/nmadhav/Local\\ Sites/wooc-auto-mbe-site/app/public/wp-content/plugins/facebook-for-woocommerce && php e2e-facebook-sync-validator.php ${productId} ${waitSeconds}`
+    );
+
+    const result = JSON.parse(stdout);
+
+    // Display results in a clean format
+    if (result.success) {
+      console.log('🎉 Facebook Sync Validation Results:');
+      console.log(result.summary);
+
+      // Additional detailed logging if needed
+      if (result.field_validation && result.field_validation.field_count > 0) {
+        console.log(`📊 Detailed field data available (${result.field_validation.field_count} fields)`);
+      }
+
+    } else {
+      console.log(`❌ Facebook sync validation failed: ${result.error}`);
+      if (result.debug && result.debug.length > 0) {
+        console.log('🔍 Debug info:', result.debug.join(', '));
+      }
+    }
+
+    return result;
+
+  } catch (error) {
+    console.log(`⚠️ Facebook sync validation error: ${error.message}`);
+    return null;
+  }
+}
+
 test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
 
   test.beforeEach(async ({ page }) => {
@@ -66,7 +112,7 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
       await page.waitForSelector('#title', { timeout: 120000 });
 
       // Fill product details
-      await page.fill('#title', 'Test Simple Product - E2E');
+      await page.fill('#title', 'Test Simple Product - E2E 1');
 
       // Try to add content - handle different editor types
       try {
@@ -151,6 +197,7 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
       }
 
       // Set product status to published and save
+      let productId = null;
       try {
         // Look for publish/update button
         await page.locator('#publishing-action').scrollIntoViewIfNeeded();
@@ -160,6 +207,14 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
           await publishButton.click();
           await page.waitForTimeout(3000);
           console.log('✅ Published simple product');
+
+          // Extract product ID from URL after publish
+          const currentUrl = page.url();
+          const urlMatch = currentUrl.match(/post=(\d+)/);
+          if (urlMatch) {
+            productId = parseInt(urlMatch[1]);
+            console.log(`📦 Product ID: ${productId}`);
+          }
         }
       } catch (error) {
         console.log('⚠️ Publish step may be slow, continuing with error check');
@@ -169,6 +224,9 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
       const pageContent = await page.content();
       expect(pageContent).not.toContain('Fatal error');
       expect(pageContent).not.toContain('Parse error');
+
+      // Validate Facebook sync if product ID was captured
+      await validateFacebookSync(productId, 5);
 
       console.log('✅ Simple product creation test completed successfully');
 
