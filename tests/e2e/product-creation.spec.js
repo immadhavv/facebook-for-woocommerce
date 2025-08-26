@@ -113,7 +113,7 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
       await page.waitForSelector('#title', { timeout: 120000 });
 
       // Fill product details
-      await page.fill('#title', 'Test Simple Product - E2E 3');
+      await page.fill('#title', 'Test Simple Product - E2E 4');
 
       // Try to add content - handle different editor types
       try {
