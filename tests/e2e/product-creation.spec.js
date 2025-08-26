@@ -58,9 +58,9 @@ async function validateFacebookSync(productId, waitSeconds = 5) {
     const { promisify } = require('util');
     const execAsync = promisify(exec);
 
-    // Call our unified Facebook sync validator
+    // Call our unified Facebook sync validator using relative path
     const { stdout } = await execAsync(
-      `cd /Users/nmadhav/Local\\ Sites/wooc-auto-mbe-site/app/public/wp-content/plugins/facebook-for-woocommerce && php e2e-facebook-sync-validator.php ${productId} ${waitSeconds}`
+      `php ../../e2e-facebook-sync-validator.php ${productId} ${waitSeconds}`
     );
 
     const result = JSON.parse(stdout);
