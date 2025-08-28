@@ -304,12 +304,16 @@ class FacebookSyncValidator {
                 $this->result['field_validation']['facebook_data'] = $facebook_data;
                 $this->result['debug'][] = "Retrieved Facebook data via API";
 
-                // Compare available fields
+                // Enhanced field comparison with detailed logging
                 $this->compareFields($woo_fields, $facebook_data);
+                $this->logDetailedFieldComparison($woo_fields, $facebook_data);
 
             } else {
                 $this->result['debug'][] = "Facebook API returned no comparable data";
                 $this->result['field_validation']['facebook_data'] = [];
+
+                // Still log the WooCommerce data for debugging
+                $this->logDetailedFieldComparison($woo_fields, []);
 
                 // Debug: Show the full response structure
                 if ($response) {
@@ -320,6 +324,9 @@ class FacebookSyncValidator {
         } catch (Exception $api_exception) {
             $this->result['debug'][] = "Facebook API comparison failed: " . $api_exception->getMessage();
             $this->result['field_validation']['facebook_data'] = [];
+
+            // Still log the WooCommerce data for debugging
+            $this->logDetailedFieldComparison($woo_fields, []);
         }
     }
 
@@ -386,6 +393,79 @@ class FacebookSyncValidator {
         }
 
         $this->result['summary'] = implode("\n", $summary_parts);
+    }
+
+    /**
+     * Generate simple formatted comparison report
+     */
+    private function logDetailedFieldComparison($woo_fields, $facebook_data) {
+        $report_lines = [];
+        $report_lines[] = "FIELD COMPARISON REPORT - LOCAL vs META";
+        $report_lines[] = str_repeat('=', 60);
+
+        // Get all unique field names
+        $all_fields = array_unique(array_merge(array_keys($woo_fields), array_keys($facebook_data)));
+        sort($all_fields);
+
+        $summary = ['matches' => 0, 'mismatches' => 0, 'sent_only' => 0, 'received_only' => 0];
+
+        foreach ($all_fields as $field) {
+            $woo_value = $woo_fields[$field] ?? '';
+            $fb_value = $facebook_data[$field] ?? '';
+
+            if (!empty($woo_value) && !empty($fb_value)) {
+                if ($woo_value === $fb_value) {
+                    $report_lines[] = "✅ $field: MATCH";
+                    $report_lines[] = "   Local: $woo_value";
+                    $report_lines[] = "   Meta:  $fb_value";
+                    $summary['matches']++;
+                } else {
+                    $report_lines[] = "⚠️ $field: MISMATCH";
+                    $report_lines[] = "   Local: $woo_value";
+                    $report_lines[] = "   Meta:  $fb_value";
+                    $summary['mismatches']++;
+                }
+            } elseif (!empty($woo_value)) {
+                $report_lines[] = "📤 $field: SENT ONLY";
+                $report_lines[] = "   Local: $woo_value";
+                $summary['sent_only']++;
+            } elseif (!empty($fb_value)) {
+                $report_lines[] = "📥 $field: RECEIVED ONLY";
+                $report_lines[] = "   Meta:  $fb_value";
+                $summary['received_only']++;
+            }
+            $report_lines[] = "";
+        }
+
+        // Add summary
+        $report_lines[] = str_repeat('=', 60);
+        $report_lines[] = "SUMMARY:";
+        $report_lines[] = "✅ Matches: " . $summary['matches'];
+        $report_lines[] = "⚠️ Mismatches: " . $summary['mismatches'];
+        $report_lines[] = "📤 Sent Only: " . $summary['sent_only'];
+        $report_lines[] = "📥 Received Only: " . $summary['received_only'];
+        $report_lines[] = "📊 Total Fields: " . count($all_fields);
+        $report_lines[] = str_repeat('=', 60);
+
+        // Store formatted report
+        $this->result['formatted_report'] = implode("\n", $report_lines);
+        $this->result['field_validation']['comparison_summary'] = $summary;
+    }
+
+    /**
+     * Truncate values for display in comparison table
+     */
+    private function truncateForDisplay($value, $max_length) {
+        if (empty($value)) {
+            return '';
+        }
+
+        $str = (string)$value;
+        if (strlen($str) <= $max_length) {
+            return $str;
+        }
+
+        return substr($str, 0, $max_length - 3) . '...';
     }
 
     /**

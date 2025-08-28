@@ -66,14 +66,14 @@ async function validateFacebookSync(productId, waitSeconds = 5) {
 
     const result = JSON.parse(stdout);
 
-    // Display results in a clean format
+    // Display results
     if (result.success) {
       console.log('🎉 Facebook Sync Validation Results:');
       console.log(result.summary);
 
-      // Additional detailed logging if needed
-      if (result.field_validation && result.field_validation.field_count > 0) {
-        console.log(`📊 Detailed field data available (${result.field_validation.field_count} fields)`);
+      // Display formatted report if available
+      if (result.formatted_report) {
+        console.log('\n' + result.formatted_report);
       }
 
     } else {
