@@ -67,13 +67,14 @@ async function cleanupProduct(productId) {
 }
 
 // Helper function to validate Facebook sync - REUSABLE across all tests
-async function validateFacebookSync(productId, waitSeconds = 10, productType = 'simple') {
+async function validateFacebookSync(productId, productName, waitSeconds = 10, productType = 'simple') {
   if (!productId) {
     console.log('⚠️ No product ID provided for Facebook sync validation');
     return null;
   }
 
-  console.log(`🔍 Validating Facebook sync for product ${productId} (${productType})...`);
+  const displayName = productName ? `"${productName}" (ID: ${productId})` : `ID: ${productId}`;
+  console.log(`🔍 Validating Facebook sync for product ${displayName} (${productType})...`);
 
   try {
     const { exec } = require('child_process');
@@ -90,7 +91,7 @@ async function validateFacebookSync(productId, waitSeconds = 10, productType = '
 
     // Display results
     if (result.success) {
-      console.log('🎉 Facebook Sync Validation Results:');
+      console.log(`🎉 Facebook Sync Validation Results for ${displayName}:`);
       console.log(`✅ Sync Status: ${result.sync_status}`);
       console.log(`📦 Product ID: ${result.product_id}`);
       console.log(`🏷️  Retailer ID: ${result.retailer_id}`);
@@ -146,8 +147,10 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
       // Wait for the product editor to load
       await page.waitForSelector('#title', { timeout: 120000 });
 
-      const timestamp = Date.now();
-      await page.fill('#title', `Test Simple Product E2E ${timestamp}`);
+      const now = new Date();
+      const humanTimestamp = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
+      const productName = `Test Simple Product E2E ${humanTimestamp}`;
+      await page.fill('#title', productName);
 
       // Try to add content - handle different editor types
       try {
@@ -261,9 +264,11 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
       expect(pageContent).not.toContain('Parse error');
 
       // Validate sync to Meta catalog and fields from Meta
-      await validateFacebookSync(productId, 5);
+      await validateFacebookSync(productId, productName, 10, 'simple');
 
       console.log('✅ Simple product creation test completed successfully');
+      console.log('⏳ Waiting 60 seconds before cleanup to allow manual catalog inspection...');
+      await page.waitForTimeout(60000); // Wait 60 seconds
 
     } catch (error) {
       console.log(`⚠️ Simple product test failed: ${error.message}`);
@@ -273,7 +278,6 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
     } finally {
     // Cleanup irrespective of test result
     if (productId) {
-      sleep(20);
       await cleanupProduct(productId);
     }
   }
