@@ -10,43 +10,19 @@
  * Returns JSON response with complete validation results
  */
 
-// Bootstrap WordPress - handle both local and GitHub Actions environments
-$possible_wp_paths = [
-    // Local development path (from tests/e2e/ to wp-load.php)
-    dirname(__FILE__) . '/../../../../../wp-load.php',
-    // GitHub Actions path (WordPress in /tmp/wordpress)
-    '/tmp/wordpress/wp-load.php',
-    // Alternative paths for different setups
-    dirname(__FILE__) . '/../../../../wp-load.php',
-    dirname(__FILE__) . '/../../../wp-load.php',
-    // Current directory (if run from WordPress root)
-    './wp-load.php',
-    // Parent directories
-    '../wp-load.php',
-    '../../wp-load.php',
-    '../../../wp-load.php',
-    '../../../../wp-load.php',
-    '../../../../../wp-load.php'
-];
+// Bootstrap WordPress - GitHub Actions environment
+$wp_path = '/tmp/wordpress/wp-load.php';
 
-$wp_loaded = false;
-$successful_path = null;
-foreach ($possible_wp_paths as $wp_path) {
-    if (file_exists($wp_path)) {
-        require_once($wp_path);
-        $wp_loaded = true;
-        $successful_path = $wp_path;
-        break;
-    }
-}
-
-if (!$wp_loaded) {
+if (!file_exists($wp_path)) {
     echo json_encode([
         'success' => false,
-        'error' => 'WordPress not found. Searched paths: ' . implode(', ', $possible_wp_paths)
+        'error' => 'WordPress not found at: ' . $wp_path
     ]);
     exit(1);
 }
+
+require_once($wp_path);
+$successful_path = $wp_path;
 
 
 /**

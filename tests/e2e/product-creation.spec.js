@@ -56,7 +56,7 @@ async function cleanupProduct(productId) {
     const execAsync = promisify(exec);
 
     const { stdout } = await execAsync(
-      `php -r "require_once('../../../../../wp-load.php'); wp_delete_post(${productId}, true);"`,
+      `php -r "require_once('/tmp/wordpress/wp-load.php'); wp_delete_post(${productId}, true);"`,
       { cwd: __dirname }
     );
 
