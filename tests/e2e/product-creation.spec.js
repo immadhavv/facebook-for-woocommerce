@@ -66,6 +66,54 @@ async function cleanupProduct(productId) {
   }
 }
 
+// Helper function to generate human-readable timestamp
+function generateHumanTimestamp() {
+  const now = new Date();
+  return now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
+}
+
+// Helper function to generate product name with timestamp
+function generateProductName(productType) {
+  const timestamp = generateHumanTimestamp();
+  return `Test ${productType} Product E2E ${timestamp}`;
+}
+
+// Helper function to extract product ID from URL
+function extractProductIdFromUrl(url) {
+  const urlMatch = url.match(/post=(\d+)/);
+  return urlMatch ? parseInt(urlMatch[1]) : null;
+}
+
+// Helper function to publish product
+async function publishProduct(page) {
+  try {
+    await page.locator('#publishing-action').scrollIntoViewIfNeeded();
+    const publishButton = page.locator('#publish');
+    if (await publishButton.isVisible({ timeout: 120000 })) {
+      await publishButton.click();
+      await page.waitForTimeout(3000);
+      console.log('✅ Published product');
+      return true;
+    }
+  } catch (error) {
+    console.log('⚠️ Publish step may be slow, continuing with error check');
+    return false;
+  }
+}
+
+// Helper function to check for PHP errors
+async function checkForPhpErrors(page) {
+  const pageContent = await page.content();
+  expect(pageContent).not.toContain('Fatal error');
+  expect(pageContent).not.toContain('Parse error');
+}
+
+// Helper function to wait for manual inspection
+async function waitForManualInspection(page, seconds = 60) {
+  console.log(`⏳ Waiting ${seconds} seconds before cleanup to allow manual catalog inspection...`);
+  await page.waitForTimeout(seconds * 1000);
+}
+
 // Helper function to validate Facebook sync - REUSABLE across all tests
 async function validateFacebookSync(productId, productName, waitSeconds = 10, productType = 'simple') {
   if (!productId) {
@@ -147,9 +195,7 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
       // Wait for the product editor to load
       await page.waitForSelector('#title', { timeout: 120000 });
 
-      const now = new Date();
-      const humanTimestamp = now.toISOString().replace(/[:.]/g, '-').slice(0, 19);
-      const productName = `Test Simple Product E2E ${humanTimestamp}`;
+      const productName = generateProductName('Simple');
       await page.fill('#title', productName);
 
       // Try to add content - handle different editor types
@@ -235,38 +281,24 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
       }
 
       // Set product status to published and save
+      // Publish product
+      await publishProduct(page);
 
-      try {
-        // Look for publish/update button
-        await page.locator('#publishing-action').scrollIntoViewIfNeeded();
-
-        const publishButton = page.locator('#publish');
-        if (await publishButton.isVisible({ timeout: 120000 })) {
-          await publishButton.click();
-          await page.waitForTimeout(3000);
-          console.log('✅ Published simple product');
-
-          // Extract product ID from URL after publish
-          const currentUrl = page.url();
-          const urlMatch = currentUrl.match(/post=(\d+)/);
-          if (urlMatch) {
-            productId = parseInt(urlMatch[1]);
-            console.log(`📦 Product ID: ${productId}`);
-          }
-        }
-      } catch (error) {
-        console.log('⚠️ Publish step may be slow, continuing with error check');
+      // Extract product ID from URL after publish
+      const currentUrl = page.url();
+      productId = extractProductIdFromUrl(currentUrl);
+      if (productId) {
+        console.log(`📦 Product ID: ${productId}`);
       }
 
       // Verify no PHP fatal errors
-      const pageContent = await page.content();
-      expect(pageContent).not.toContain('Fatal error');
-      expect(pageContent).not.toContain('Parse error');
+      await checkForPhpErrors(page);
 
       // Validate sync to Meta catalog and fields from Meta
       await validateFacebookSync(productId, productName, 10, 'simple');
 
       console.log('✅ Simple product creation test completed successfully');
+      await waitForManualInspection(page);
 
     } catch (error) {
       console.log(`⚠️ Simple product test failed: ${error.message}`);
@@ -282,6 +314,7 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
   });
 
   test('Create variable product with attributes - comprehensive test', async ({ page }) => {
+    let productId = null;
     try {
       await loginToWordPress(page);
       //
@@ -294,8 +327,8 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
       // Wait for the product editor to load
       await page.waitForSelector('#title', { timeout: 120000 });
 
-      const timestamp = Date.now();
-      await page.fill('#title', `Test Variable Product E2E ${timestamp}`);
+      const productName = generateProductName('Variable');
+      await page.fill('#title', productName);
 
       // Set product type to variable
       await page.selectOption('#product-type', 'variable');
@@ -501,30 +534,34 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
       }
 
       // Publish product
-      try {
-        console.log('🔄 Publishing product...');
-        const publishButton = page.locator('#publish');
-        if (await publishButton.isVisible({ timeout: 30000 })) {
-          await publishButton.click();
-          await page.waitForTimeout(5000);
-          console.log('✅ Published variable product');
-        }
-      } catch (error) {
-        console.log('⚠️ Publish step may be slow, continuing with error check');
+      await publishProduct(page);
+
+      // Extract product ID from URL after publish
+      const currentUrl = page.url();
+      productId = extractProductIdFromUrl(currentUrl);
+      if (productId) {
+        console.log(`📦 Variable Product ID: ${productId}`);
       }
 
       // Verify no PHP fatal errors
-      const pageContent = await page.content();
-      expect(pageContent).not.toContain('Fatal error');
-      expect(pageContent).not.toContain('Parse error');
+      await checkForPhpErrors(page);
+
+      // Validate sync to Meta catalog and fields from Meta
+      await validateFacebookSync(productId, productName, 10, 'variable');
 
       console.log('✅ Variable product creation test completed successfully');
+      await waitForManualInspection(page);
 
     } catch (error) {
       console.log(`⚠️ Variable product test failed: ${error.message}`);
       // Take screenshot for debugging
       await safeScreenshot(page, 'variable-product-test-failure.png');
       throw error;
+    } finally {
+      // Cleanup irrespective of test result
+      if (productId) {
+        await cleanupProduct(productId);
+      }
     }
   });
 
