@@ -122,6 +122,7 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
   });
 
   test('Create simple product with WooCommerce', async ({ page }) => {
+    let productId = null;
     try {
       await loginToWordPress(page);
 
@@ -220,7 +221,7 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
       }
 
       // Set product status to published and save
-      let productId = null;
+
       try {
         // Look for publish/update button
         await page.locator('#publishing-action').scrollIntoViewIfNeeded();
