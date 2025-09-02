@@ -287,8 +287,8 @@ class FacebookSyncValidator {
             $api = facebook_for_woocommerce()->get_api();
             $catalog_id = $this->integration->get_product_catalog_id();
 
-            // Get limited Facebook data via API
-            $response = $api->get_product_facebook_ids($catalog_id, $this->result['retailer_id']);
+            // Get detailed Facebook data via API for E2E testing
+            $response = $api->get_product_facebook_ids($catalog_id, $this->result['retailer_id'], true);
 
             if ($response && $response->response_data && isset($response->response_data['data'][0])) {
                 $fb_product_data = $response->response_data['data'][0];
@@ -296,9 +296,30 @@ class FacebookSyncValidator {
                 // Debug: Show what Facebook actually returned
                 $this->result['debug'][] = "Raw Facebook API response: " . json_encode($fb_product_data);
 
+                // Extract all available Facebook fields for comparison
                 $facebook_data = [
                     'id' => $fb_product_data['id'] ?? '',
+                    'title' => $fb_product_data['name'] ?? '',
+                    'price' => $fb_product_data['price'] ?? '',
+                    'description' => $fb_product_data['description'] ?? '',
+                    'brand' => $fb_product_data['brand'] ?? '',
+                    'condition' => $fb_product_data['condition'] ?? '',
+                    'availability' => $fb_product_data['availability'] ?? '',
+                    'image_link' => $fb_product_data['image_url'] ?? '',
                     'retailer_id' => $fb_product_data['retailer_id'] ?? '',
+                    'color' => $fb_product_data['color'] ?? '',
+                    'size' => $fb_product_data['size'] ?? '',
+                    'material' => $fb_product_data['material'] ?? '',
+                    'pattern' => $fb_product_data['pattern'] ?? '',
+                    'age_group' => $fb_product_data['age_group'] ?? '',
+                    'gender' => $fb_product_data['gender'] ?? '',
+                    'mpn' => $fb_product_data['mpn'] ?? '',
+                    'gtin' => $fb_product_data['gtin'] ?? '',
+                    'custom_label_0' => $fb_product_data['custom_label_0'] ?? '',
+                    'custom_label_1' => $fb_product_data['custom_label_1'] ?? '',
+                    'custom_label_2' => $fb_product_data['custom_label_2'] ?? '',
+                    'custom_label_3' => $fb_product_data['custom_label_3'] ?? '',
+                    'custom_label_4' => $fb_product_data['custom_label_4'] ?? '',
                 ];
 
                 $this->result['field_validation']['facebook_data'] = $facebook_data;
