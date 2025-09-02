@@ -67,13 +67,13 @@ async function cleanupProduct(productId) {
 }
 
 // Helper function to validate Facebook sync - REUSABLE across all tests
-async function validateFacebookSync(productId, waitSeconds = 5) {
+async function validateFacebookSync(productId, waitSeconds = 10, productType = 'simple') {
   if (!productId) {
     console.log('⚠️ No product ID provided for Facebook sync validation');
     return null;
   }
 
-  console.log(`🔍 Validating Facebook sync for product ${productId}...`);
+  console.log(`🔍 Validating Facebook sync for product ${productId} (${productType})...`);
 
   try {
     const { exec } = require('child_process');
@@ -82,7 +82,7 @@ async function validateFacebookSync(productId, waitSeconds = 5) {
 
     // Call the Facebook sync validator
     const { stdout } = await execAsync(
-      `php e2e-facebook-sync-validator-simple.php ${productId} ${waitSeconds}`,
+      `php e2e-facebook-sync-validator-simple.php ${productId} ${waitSeconds} ${productType}`,
       { cwd: __dirname }
     );
 
@@ -91,11 +91,22 @@ async function validateFacebookSync(productId, waitSeconds = 5) {
     // Display results
     if (result.success) {
       console.log('🎉 Facebook Sync Validation Results:');
-      console.log(result.summary);
+      console.log(`✅ Sync Status: ${result.sync_status}`);
+      console.log(`📦 Product ID: ${result.product_id}`);
+      console.log(`🏷️  Retailer ID: ${result.retailer_id}`);
+      console.log(`🔗 Facebook ID: ${result.facebook_id}`);
 
-      // Display formatted report if available
-      if (result.formatted_report) {
-        console.log('\n' + result.formatted_report);
+      if (result.mismatches && Object.keys(result.mismatches).length > 0) {
+        console.log('⚠️ Field Mismatches Found:');
+        Object.entries(result.mismatches).forEach(([field, data]) => {
+          console.log(`  ${field}: WooCommerce="${data.woocommerce}" vs Facebook="${data.facebook}"`);
+        });
+      } else {
+        console.log('✅ No field mismatches detected');
+      }
+
+      if (result.debug && result.debug.length > 0) {
+        console.log('🔍 Debug info:', result.debug.join(', '));
       }
 
     } else {
