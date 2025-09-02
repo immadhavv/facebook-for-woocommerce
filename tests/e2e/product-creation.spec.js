@@ -92,7 +92,7 @@ async function validateFacebookSync(productId, waitSeconds = 5) {
     if (result.success) {
       console.log('🎉 Facebook Sync Validation Results:');
       console.log(result.summary);
-
+       console.log('🔍 Debug info:', result.debug.join(', '));
       // Display formatted report if available
       if (result.formatted_report) {
         console.log('\n' + result.formatted_report);
