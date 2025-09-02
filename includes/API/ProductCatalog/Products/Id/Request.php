@@ -30,7 +30,7 @@ class Request extends ApiRequest {
 		// Choose fields based on parameter - detailed fields for E2E testing, minimal for production
 		$fields = $detailed_fields
 			? 'id,name,price,description,brand,condition,availability,image_url,retailer_id,color,size,material,pattern,age_group,gender,mpn,gtin,custom_label_0,custom_label_1,custom_label_2,custom_label_3,custom_label_4,product_group{id}'
-			: 'id,product_group{id}';  // Original production behavior
+			: 'id,product_group{id}';
 
 		$this->set_params(
 			array(

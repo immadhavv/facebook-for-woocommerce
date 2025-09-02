@@ -44,6 +44,28 @@ async function safeScreenshot(page, path) {
   }
 }
 
+// cleanup function - Delete created product from WooCommerce
+async function cleanupProduct(productId) {
+  if (!productId) return;
+
+  console.log(`🧹 Cleaning up product ${productId}...`);
+
+  try {
+    const { exec } = require('child_process');
+    const { promisify } = require('util');
+    const execAsync = promisify(exec);
+
+    const { stdout } = await execAsync(
+      `php -r "require_once('../../../../../wp-load.php'); wp_delete_post(${productId}, true);"`,
+      { cwd: __dirname }
+    );
+
+    console.log(`✅ Product ${productId} deleted from WooCommerce`);
+  } catch (error) {
+    console.log(`⚠️ Cleanup failed: ${error.message}`);
+  }
+}
+
 // Helper function to validate Facebook sync - REUSABLE across all tests
 async function validateFacebookSync(productId, waitSeconds = 5) {
   if (!productId) {
@@ -58,7 +80,7 @@ async function validateFacebookSync(productId, waitSeconds = 5) {
     const { promisify } = require('util');
     const execAsync = promisify(exec);
 
-    // Call our unified Facebook sync validator from same directory
+    // Call the Facebook sync validator
     const { stdout } = await execAsync(
       `php e2e-facebook-sync-validator.php ${productId} ${waitSeconds}`,
       { cwd: __dirname }
@@ -112,8 +134,8 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
       // Wait for the product editor to load
       await page.waitForSelector('#title', { timeout: 120000 });
 
-      // Fill product details
-      await page.fill('#title', 'Test Simple Product - E2E 6');
+      const timestamp = Date.now();
+      await page.fill('#title', `Test Simple Product E2E ${timestamp}`);
 
       // Try to add content - handle different editor types
       try {
@@ -226,7 +248,7 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
       expect(pageContent).not.toContain('Fatal error');
       expect(pageContent).not.toContain('Parse error');
 
-      // Validate Facebook sync if product ID was captured
+      // Validate sync to Meta catalog and fields from Meta
       await validateFacebookSync(productId, 5);
 
       console.log('✅ Simple product creation test completed successfully');
@@ -236,7 +258,12 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
       // Take screenshot for debugging
       await safeScreenshot(page, 'simple-product-test-failure.png');
       throw error;
+    } finally {
+    // Cleanup irrespective of test result
+    if (productId) {
+      await cleanupProduct(productId);
     }
+  }
   });
 
   test('Create variable product with attributes - comprehensive test', async ({ page }) => {
@@ -251,7 +278,9 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
 
       // Wait for the product editor to load
       await page.waitForSelector('#title', { timeout: 120000 });
-      await page.fill('#title', 'Test Variable Product - E2E');
+
+      const timestamp = Date.now();
+      await page.fill('#title', `Test Variable Product E2E ${timestamp}`);
 
       // Set product type to variable
       await page.selectOption('#product-type', 'variable');

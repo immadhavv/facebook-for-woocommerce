@@ -48,8 +48,6 @@ if (!$wp_loaded) {
     exit(1);
 }
 
-// Log which path was successful for debugging
-echo("E2E Facebook Sync Validator: Successfully loaded WordPress from: " . $successful_path);
 
 /**
  * Facebook Sync Validator Class
@@ -66,7 +64,7 @@ class FacebookSyncValidator {
     private $integration;
     private $result;
 
-    public function __construct($product_id, $wait_seconds = 5) {
+    public function __construct($product_id, $wait_seconds = 5, $wp_path = null) {
         $this->product_id = (int)$product_id;
         $this->result = [
             'success' => false,
@@ -86,6 +84,11 @@ class FacebookSyncValidator {
             'debug' => [],
             'summary' => ''
         ];
+
+        // Add WordPress path info to debug
+        if ($wp_path) {
+            $this->result['debug'][] = "E2E Facebook Sync Validator: Successfully loaded WordPress from: " . $wp_path;
+        }
 
         // Wait for Facebook processing if specified
         if ($wait_seconds > 0) {
@@ -526,7 +529,7 @@ if (php_sapi_name() === 'cli') {
             exit(1);
         }
 
-        $validator = new FacebookSyncValidator($product_id, $wait_seconds);
+        $validator = new FacebookSyncValidator($product_id, $wait_seconds, $successful_path);
         $result = $validator->validate();
         echo $validator->getJsonResult();
 
