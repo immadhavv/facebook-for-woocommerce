@@ -72,8 +72,10 @@ class E2EValidator {
         }
     }
 
+    // Initialize product
     private function initializeProduct() {
         $this->product = wc_get_product($this->product_id);
+        // Fail fast if the product ID doesn't exist in WooCommerce
         if (!$this->product) {
             throw new Exception("Product {$this->product_id} not found");
         }
@@ -116,8 +118,6 @@ class E2EValidator {
     }
 
     private function compareFields($product_type = 'simple') {
-        $fields_to_check = $this->getFieldsForProductType($product_type);
-
         // Get WooCommerce data
         $fb_product = new WC_Facebook_Product($this->product_id);
         $woo_data = $fb_product->prepare_product(
@@ -126,6 +126,7 @@ class E2EValidator {
         );
 
         // Get Facebook data with specific fields
+        $fields_to_check = $this->getFieldsForProductType($product_type);
         $facebook_data = $this->getFacebookData($fields_to_check);
 
         // Compare and find mismatches
@@ -149,7 +150,17 @@ class E2EValidator {
             $api = facebook_for_woocommerce()->get_api();
             $catalog_id = $this->integration->get_product_catalog_id();
 
-            $response = $api->get_product_facebook_ids($catalog_id, $this->result['retailer_id'], true);
+            // Build fields string using mapFieldName function
+            $facebook_fields = ['id', 'product_group{id}'];
+            foreach ($fields_to_check as $field) {
+                $facebook_field = $this->mapFieldName($field);
+                if (!in_array($facebook_field, $facebook_fields)) {
+                    $facebook_fields[] = $facebook_field;
+                }
+            }
+            $fields_string = implode(',', $facebook_fields);
+
+            $response = $api->get_product_facebook_ids($catalog_id, $this->result['retailer_id'], $fields_string);
 
             if (!empty($response->response_data['data'][0])) {
                 return $response->response_data['data'][0];
