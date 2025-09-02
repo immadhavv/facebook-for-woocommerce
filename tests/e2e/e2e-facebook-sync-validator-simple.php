@@ -90,8 +90,15 @@ class E2EValidator {
 
     public function validate($product_type = 'simple') {
         try {
-            $this->checkSyncStatus();
-            $this->compareFields($product_type);
+            // First get both WooCommerce and Facebook data in one call
+            $data = $this->getBothPlatformData($product_type);
+
+            // Then check sync status using the already-fetched Facebook data
+            $this->checkSyncStatus($data['facebook_data']);
+
+            // Finally compare the fields
+            $this->compareFields($data['woo_data'], $data['facebook_data'], $data['fields_to_check']);
+
             $this->result['success'] = true;
         } catch (Exception $e) {
             $this->result['error'] = $e->getMessage();
@@ -99,25 +106,10 @@ class E2EValidator {
         return $this->result;
     }
 
-    private function checkSyncStatus() {
+    private function getBothPlatformData($product_type = 'simple') {
+        // Generate retailer ID first (needed for both WooCommerce and Facebook data)
         $this->result['retailer_id'] = WC_Facebookcommerce_Utils::get_fb_retailer_id($this->product);
 
-        $fb_product_item_id = $this->integration->get_product_fbid(
-            WC_Facebookcommerce_Integration::FB_PRODUCT_ITEM_ID,
-            $this->product_id,
-            $this->product
-        );
-
-        if ($fb_product_item_id) {
-            $this->result['facebook_id'] = $fb_product_item_id;
-            $this->result['sync_status'] = 'synced';
-        } else {
-            $this->result['sync_status'] = 'not_synced';
-            throw new Exception('Product not found in Facebook catalog');
-        }
-    }
-
-    private function compareFields($product_type = 'simple') {
         // Get WooCommerce data
         $fb_product = new WC_Facebook_Product($this->product_id);
         $woo_data = $fb_product->prepare_product(
@@ -125,12 +117,29 @@ class E2EValidator {
             WC_Facebook_Product::PRODUCT_PREP_TYPE_ITEMS_BATCH
         );
 
-        // Get Facebook data with specific fields
+        // Get fields to check for this product type
         $fields_to_check = $this->getFieldsForProductType($product_type);
+
+        // Get Facebook data with specific fields (single API call)
         $facebook_data = $this->getFacebookData($fields_to_check);
 
-        // Compare and find mismatches
-        $this->findMismatches($woo_data, $facebook_data, $fields_to_check);
+        return [
+            'woo_data' => $woo_data,
+            'facebook_data' => $facebook_data,
+            'fields_to_check' => $fields_to_check
+        ];
+    }
+
+    private function checkSyncStatus($facebook_data) {
+        // Check if we got Facebook data (means product exists)
+        if (!empty($facebook_data) && isset($facebook_data['id'])) {
+            $this->result['facebook_id'] = $facebook_data['id'];
+            $this->result['sync_status'] = 'synced';
+            $this->result['debug'][] = "Product found in Facebook catalog: " . $facebook_data['id'];
+        } else {
+            $this->result['sync_status'] = 'not_synced';
+            throw new Exception('Product not found in Facebook catalog');
+        }
     }
 
     private function getFieldsForProductType($product_type) {
@@ -172,7 +181,7 @@ class E2EValidator {
         return [];
     }
 
-    private function findMismatches($woo_data, $facebook_data, $fields_to_check) {
+    private function compareFields($woo_data, $facebook_data, $fields_to_check) {
         $mismatches = [];
 
         foreach ($fields_to_check as $field) {
