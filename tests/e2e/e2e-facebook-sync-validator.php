@@ -49,7 +49,7 @@ if (!$wp_loaded) {
 }
 
 // Log which path was successful for debugging
-error_log("E2E Facebook Sync Validator: Successfully loaded WordPress from: " . $successful_path);
+echo("E2E Facebook Sync Validator: Successfully loaded WordPress from: " . $successful_path);
 
 /**
  * Facebook Sync Validator Class
