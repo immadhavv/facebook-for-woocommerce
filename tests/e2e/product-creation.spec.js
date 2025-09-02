@@ -267,8 +267,6 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
       await validateFacebookSync(productId, productName, 10, 'simple');
 
       console.log('✅ Simple product creation test completed successfully');
-      console.log('⏳ Waiting 60 seconds before cleanup to allow manual catalog inspection...');
-      await page.waitForTimeout(60000); // Wait 60 seconds
 
     } catch (error) {
       console.log(`⚠️ Simple product test failed: ${error.message}`);
