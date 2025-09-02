@@ -597,7 +597,7 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
 
   test('Test WordPress admin and Facebook plugin presence', async ({ page }, testInfo) => {
     logTestStart(testInfo);
-    
+
     try {
       // Navigate to plugins page with increased timeout
       await page.goto(`${baseURL}/wp-admin/plugins.php`, {
@@ -632,7 +632,7 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
 
   test('Test basic WooCommerce product list', async ({ page }, testInfo) => {
     logTestStart(testInfo);
-    
+
     try {
       // Go to Products list with increased timeout
       await page.goto(`${baseURL}/wp-admin/edit.php?post_type=product`, {
@@ -665,7 +665,7 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
 
   test('Quick PHP error check across key pages', async ({ page }, testInfo) => {
     logTestStart(testInfo);
-    
+
     try {
       const pagesToCheck = [
         { path: '/wp-admin/', name: 'Dashboard' },
