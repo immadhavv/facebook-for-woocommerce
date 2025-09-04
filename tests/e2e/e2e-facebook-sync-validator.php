@@ -267,7 +267,7 @@ class FacebookSyncValidator {
             $catalog_id = $this->integration->get_product_catalog_id();
 
             // Get detailed Facebook data via API for E2E testing
-            $response = $api->get_product_facebook_ids($catalog_id, $this->result['retailer_id'], true);
+            $response = $api->get_product_facebook_fields($catalog_id, $this->result['retailer_id'], true);
 
             if ($response && $response->response_data && isset($response->response_data['data'][0])) {
                 $fb_product_data = $response->response_data['data'][0];
