@@ -280,7 +280,7 @@ class FacebookSyncValidator {
 
             $this->result['debug'][] = "Fetching Facebook data for retailer_id: {$retailer_id} (context: {$context})";
 
-            $response = $api->get_product_facebook_fields($catalog_id, $retailer_id, $fields);
+            $response = $api->get_product_facebook_ids($catalog_id, $retailer_id, $fields);
 
             if ($response && $response->response_data && isset($response->response_data['data'][0])) {
                 $fb_data = $response->response_data['data'][0];
