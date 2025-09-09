@@ -109,7 +109,7 @@ async function checkForPhpErrors(page) {
 }
 
 // Helper function to wait for manual inspection
-async function waitForManualInspection(page, seconds = 60) {
+async function waitForManualInspection(page, seconds = 20) {
   console.log(`⏳ Waiting ${seconds} seconds before cleanup to allow manual catalog inspection...`);
   await page.waitForTimeout(seconds * 1000);
 }
@@ -135,7 +135,7 @@ function logTestEnd(testInfo, success = true) {
 }
 
 // Helper function to validate Facebook sync - REUSABLE across all tests
-async function validateFacebookSync(productId, productName, waitSeconds = 10, productType = 'simple') {
+async function validateFacebookSync(productId, productName, waitSeconds = 10, productType = 'auto') {
   if (!productId) {
     console.log('⚠️ No product ID provided for Facebook sync validation');
     return null;
@@ -160,22 +160,82 @@ async function validateFacebookSync(productId, productName, waitSeconds = 10, pr
     // Display results
     if (result.success) {
       console.log(`🎉 Facebook Sync Validation Results for ${displayName}:`);
-      console.log(`✅ Sync Status: ${result.sync_status}`);
-      console.log(`📦 Product ID: ${result.product_id}`);
-      console.log(`🏷️  Retailer ID: ${result.retailer_id}`);
-      console.log(`🔗 Facebook ID: ${result.facebook_id}`);
 
-      if (result.mismatches && Object.keys(result.mismatches).length > 0) {
-        console.log('⚠️ Field Mismatches Found:');
-        Object.entries(result.mismatches).forEach(([field, data]) => {
-          console.log(`  ${field}: WooCommerce="${data.woocommerce}" vs Facebook="${data.facebook}"`);
-        });
+      // Handle variable product results
+      if (result.product_type === 'variable' && result.summary) {
+        const summary = result.summary;
+
+        // Parent Group Info (from main result fields)
+        console.log(`📦 Parent Group: ${result.sync_status}`);
+        console.log(`🏷️  Parent Retailer ID: ${result.retailer_id}`);
+        if (result.facebook_id) {
+          console.log(`🔗 Facebook Group ID: ${result.facebook_id}`);
+        }
+
+        // Variations Summary
+        console.log(`👕 Variations: ${summary.successful_variations}/${summary.total_variations} synced successfully`);
+
+        if (summary.failed_variations > 0) {
+          console.log(`⚠️ Failed Variations: ${summary.failed_variations}`);
+          if (summary.failed_variation_ids && summary.failed_variation_ids.length > 0) {
+            console.log(`   └─ Failed Variation IDs: ${summary.failed_variation_ids.join(', ')}`);
+          }
+        }
+
+        // Mismatches (if any)
+        if (result.mismatches && Object.keys(result.mismatches).length > 0) {
+          console.log('⚠️ Field Mismatches Found:');
+          Object.entries(result.mismatches).forEach(([key, mismatch]) => {
+            console.log(`  Product ${mismatch.product_id} - ${mismatch.field}: WooCommerce="${mismatch.woocommerce_value}" vs Facebook="${mismatch.facebook_value}"`);
+          });
+        } else {
+          console.log('✅ No field mismatches detected');
+        }
       } else {
-        console.log('✅ No field mismatches detected');
+        // Simple product results (simple format)
+        console.log(`✅ Sync Status: ${result.sync_status}`);
+        console.log(`📦 Product ID: ${result.product_id}`);
+        console.log(`🏷️  Retailer ID: ${result.retailer_id}`);
+        console.log(`🔗 Facebook ID: ${result.facebook_id}`);
+
+        if (result.mismatches && Object.keys(result.mismatches).length > 0) {
+          console.log('⚠️ Field Mismatches Found:');
+          Object.entries(result.mismatches).forEach(([field, data]) => {
+            console.log(`  ${field}: WooCommerce="${data.woocommerce}" vs Facebook="${data.facebook}"`);
+          });
+        } else {
+          console.log('✅ No field mismatches detected');
+        }
+
+        // Show Facebook ID validation details
+        if (result.facebook_id_validation) {
+          const idVal = result.facebook_id_validation;
+          console.log(`🔍 Facebook ID Validation: ${idVal.status}`);
+          if (idVal.consistent) {
+            console.log('  ✅ Local metadata and API Facebook IDs are consistent');
+          } else if (idVal.status === 'mismatch') {
+            console.log(`  ⚠️ ID Mismatch: Local="${idVal.local_fb_id}" vs API="${idVal.api_fb_id}"`);
+          } else if (idVal.status === 'local_missing') {
+            console.log(`  ⚠️ Local metadata missing Facebook ID (API has: ${idVal.api_fb_id})`);
+          } else if (idVal.status === 'api_missing') {
+            console.log(`  ⚠️ API missing Facebook ID (local has: ${idVal.local_fb_id})`);
+          }
+        }
       }
 
       if (result.debug && result.debug.length > 0) {
         console.log('🔍 Debug info:', result.debug.join(', '));
+      }
+
+      // Show product group relationships for variable products
+      if (result.product_type === 'variable') {
+        const groupRelationships = result.debug.filter(msg => msg.includes('belongs to Facebook product group'));
+        if (groupRelationships.length > 0) {
+          console.log('📋 Product Group Relationships:');
+          groupRelationships.forEach(relationship => {
+            console.log(`  ${relationship}`);
+          });
+        }
       }
 
     } else {
@@ -195,18 +255,18 @@ async function validateFacebookSync(productId, productName, waitSeconds = 10, pr
 
 test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
 
-  test.beforeEach(async ({ page }) => {
+  test.beforeEach(async ({ page }, testInfo) => {
+    // Log test start first for proper chronological order
+    logTestStart(testInfo);
+
     // Ensure browser stability
     await page.setViewportSize({ width: 1280, height: 720 });
     await loginToWordPress(page);
   });
 
   test('Create simple product with WooCommerce', async ({ page }, testInfo) => {
-    logTestStart(testInfo);
-
     let productId = null;
     try {
-      await loginToWordPress(page);
 
       // Navigate to add new product page
       await page.goto(`${baseURL}/wp-admin/post-new.php?post_type=product`, {
@@ -339,12 +399,10 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
   });
 
   test('Create variable product with attributes - comprehensive test', async ({ page }, testInfo) => {
-    logTestStart(testInfo);
 
     let productId = null;
     try {
-      await loginToWordPress(page);
-      //
+
       // Navigate to add new product page
       await page.goto(`${baseURL}/wp-admin/post-new.php?post_type=product`, {
         waitUntil: 'networkidle',
@@ -596,7 +654,6 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
   });
 
   test('Test WordPress admin and Facebook plugin presence', async ({ page }, testInfo) => {
-    logTestStart(testInfo);
 
     try {
       // Navigate to plugins page with increased timeout
@@ -631,7 +688,6 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
   });
 
   test('Test basic WooCommerce product list', async ({ page }, testInfo) => {
-    logTestStart(testInfo);
 
     try {
       // Go to Products list with increased timeout
@@ -664,7 +720,6 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
   });
 
   test('Quick PHP error check across key pages', async ({ page }, testInfo) => {
-    logTestStart(testInfo);
 
     try {
       const pagesToCheck = [
@@ -706,10 +761,8 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
   });
 
   test('Test Facebook plugin deactivation and reactivation', async ({ page }, testInfo) => {
-    logTestStart(testInfo);
 
     try {
-      await loginToWordPress(page);
 
       // Navigate to plugins page
       await page.goto(`${baseURL}/wp-admin/plugins.php`, {

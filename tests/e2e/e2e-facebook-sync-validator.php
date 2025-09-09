@@ -453,22 +453,6 @@ class FacebookSyncValidator {
     }
 
     /**
-     * Truncate values for display in comparison table
-     */
-    private function truncateForDisplay($value, $max_length) {
-        if (empty($value)) {
-            return '';
-        }
-
-        $str = (string)$value;
-        if (strlen($str) <= $max_length) {
-            return $str;
-        }
-
-        return substr($str, 0, $max_length - 3) . '...';
-    }
-
-    /**
      * Utility method to truncate text
      */
     private function truncateText($text, $length) {
