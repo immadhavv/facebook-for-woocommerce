@@ -138,14 +138,14 @@ function logTestEnd(testInfo, success = true) {
 }
 
 // Helper function to validate Facebook sync - REUSABLE across all tests
-async function validateFacebookSync(productId, productName, waitSeconds = 10, productType = 'auto') {
+async function validateFacebookSync(productId, productName, waitSeconds = 10) {
   if (!productId) {
     console.log('⚠️ No product ID provided for Facebook sync validation');
     return null;
   }
 
   const displayName = productName ? `"${productName}" (ID: ${productId})` : `ID: ${productId}`;
-  console.log(`🔍 Validating Facebook sync for product ${displayName} (${productType})...`);
+  console.log(`🔍 Validating Facebook sync for product ${displayName}...`);
 
   try {
     const { exec } = require('child_process');
@@ -154,7 +154,7 @@ async function validateFacebookSync(productId, productName, waitSeconds = 10, pr
 
     // Call the Facebook sync validator
     const { stdout } = await execAsync(
-      `php e2e-facebook-sync-validator-simple.php ${productId} ${waitSeconds} ${productType}`,
+      `php e2e-facebook-sync-validator-simple.php ${productId} ${waitSeconds}`,
       { cwd: __dirname }
     );
 
@@ -380,7 +380,7 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
       await checkForPhpErrors(page);
 
       // Validate sync to Meta catalog and fields from Meta
-      await validateFacebookSync(productId, productName, 10, 'simple');
+      await validateFacebookSync(productId, productName, 10);
 
       console.log('✅ Simple product creation test completed successfully');
       await waitForManualInspection(page);
@@ -656,7 +656,7 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
       await checkForPhpErrors(page);
 
       // Validate sync to Meta catalog and fields from Meta
-      await validateFacebookSync(productId, productName, 10, 'variable');
+      await validateFacebookSync(productId, productName, 10);
 
       console.log('✅ Variable product creation test completed successfully');
       await waitForManualInspection(page);

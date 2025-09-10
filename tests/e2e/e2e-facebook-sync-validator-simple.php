@@ -92,10 +92,9 @@ class FacebookSyncValidator {
         $this->result['debug'][] = 'Facebook integration initialized and configured';
     }
 
-    public function validate($product_type = 'auto') {
+    public function validate() {
         try {
-            // Auto-detect product type if not specified
-            $actual_type = $product_type === 'auto' ? $this->product->get_type() : $product_type;
+            $actual_type = $this->product->get_type();
 
             // Step 1: Get both platform data (WooCommerce + Facebook)
             $data = $this->getBothPlatformData($actual_type);
@@ -516,9 +515,9 @@ class FacebookSyncValidator {
         return json_encode($this->result, JSON_PRETTY_PRINT);
     }
 
-    public static function validateProduct($product_id, $wait_seconds = 5, $product_type = 'auto') {
+    public static function validateProduct($product_id, $wait_seconds = 5) {
         $validator = new self($product_id, $wait_seconds);
-        return $validator->validate($product_type);
+        return $validator->validate();
     }
 }
 
@@ -527,7 +526,6 @@ if (php_sapi_name() === 'cli') {
     try {
         $product_id = isset($argv[1]) ? (int)$argv[1] : null;
         $wait_seconds = isset($argv[2]) ? (int)$argv[2] : 10;
-        $product_type = isset($argv[3]) ? $argv[3] : 'auto';
 
         if (!$product_id) {
             echo json_encode(['success' => false, 'error' => 'Product ID required']);
@@ -535,7 +533,7 @@ if (php_sapi_name() === 'cli') {
         }
 
         $validator = new FacebookSyncValidator($product_id, $wait_seconds);
-        $result = $validator->validate($product_type);
+        $result = $validator->validate();
         echo $validator->getJsonResult();
 
     } catch (Exception $e) {
