@@ -152,6 +152,14 @@ async function validateFacebookSync(productId, productName, waitSeconds = 10) {
     const { promisify } = require('util');
     const execAsync = promisify(exec);
 
+    // Debug the environment
+    const { stdout: debugStdout } = await execAsync(
+      `php dump-wp-config.php`,
+      { cwd: __dirname }
+    );
+    console.log("🔍 DEBUG API RESPONSE:", JSON.parse(debugStdout));
+
+
     // Debug the API call
     const { stdout: debugStdout } = await execAsync(
       `php debug-facebook-api.php ${productId}`,
@@ -390,11 +398,8 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
       // Verify no PHP fatal errors
       await checkForPhpErrors(page);
 
-      console.log('✅ Simple product creation test completed successfully');
-      await waitForManualInspection(page);
-
       // Validate sync to Meta catalog and fields from Meta
-      await validateFacebookSync(productId, productName, 60);
+      await validateFacebookSync(productId, productName);
 
       console.log('✅ Simple product creation test completed successfully');
       await waitForManualInspection(page);
