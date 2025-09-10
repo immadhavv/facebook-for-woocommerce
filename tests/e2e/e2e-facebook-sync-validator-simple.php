@@ -10,6 +10,7 @@
 
 // Bootstrap WordPress
 $wp_path = '/tmp/wordpress/wp-load.php';
+// $wp_path = '/Users/nmadhav/Local Sites/wooc-auto-mbe-site/app/public/wp-load.php';
 
 if (!file_exists($wp_path)) {
     echo json_encode([

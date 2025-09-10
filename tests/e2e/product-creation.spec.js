@@ -137,7 +137,7 @@ function logTestEnd(testInfo, success = true) {
   console.log('='.repeat(80) + '\n');
 }
 
-// Helper function to validate Facebook sync - REUSABLE across all tests
+// Helper function to validate Facebook sync
 async function validateFacebookSync(productId, productName, waitSeconds = 10) {
   if (!productId) {
     console.log('⚠️ No product ID provided for Facebook sync validation');
@@ -384,7 +384,7 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
       await checkForPhpErrors(page);
 
       // Validate sync to Meta catalog and fields from Meta
-      await validateFacebookSync(productId, productName, 10);
+      await validateFacebookSync(productId, productName, 30);
 
       console.log('✅ Simple product creation test completed successfully');
       await waitForManualInspection(page);
@@ -660,7 +660,7 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
       await checkForPhpErrors(page);
 
       // Validate sync to Meta catalog and fields from Meta
-      await validateFacebookSync(productId, productName, 10);
+      await validateFacebookSync(productId, productName, 20);
 
       console.log('✅ Variable product creation test completed successfully');
       await waitForManualInspection(page);
