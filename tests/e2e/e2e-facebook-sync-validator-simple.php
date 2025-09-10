@@ -280,7 +280,7 @@ class FacebookSyncValidator {
 
             // Use get_product_facebook_fields to get all product data in one call (like the old validator)
             $fields = 'id,name,price,description,availability,retailer_id,condition,brand,color,size,product_group{id}';
-            $response = $api->get_product_facebook_ids($catalog_id, $retailer_id, $fields);
+            $response = $api->get_product_facebook_fields($catalog_id, $retailer_id, $fields);
             $this->result['debug'][] = "Facebook API Response: " . print_r($response, true);
 
             if ($response && $response->response_data && isset($response->response_data['data'][0])) {
