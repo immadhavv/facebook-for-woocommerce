@@ -153,11 +153,11 @@ async function validateFacebookSync(productId, productName, waitSeconds = 10) {
     const execAsync = promisify(exec);
 
     // Debug the environment
-    const { stdout: debugStdout } = await execAsync(
+    const { stdout: configStdout } = await execAsync(
       `php dump-wp-config.php`,
       { cwd: __dirname }
     );
-    console.log("🔍 DEBUG API RESPONSE:", JSON.parse(debugStdout));
+    console.log("🔍 DEBUG CONFIG RESPONSE:", JSON.parse(configStdout));
 
 
     // Debug the API call
