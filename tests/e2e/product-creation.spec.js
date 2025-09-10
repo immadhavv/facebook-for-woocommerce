@@ -383,6 +383,9 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
       // Verify no PHP fatal errors
       await checkForPhpErrors(page);
 
+      console.log('✅ Simple product creation test completed successfully');
+      await waitForManualInspection(page,seconds = 60);
+
       // Validate sync to Meta catalog and fields from Meta
       await validateFacebookSync(productId, productName, 60);
 
