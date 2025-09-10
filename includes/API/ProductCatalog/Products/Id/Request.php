@@ -27,17 +27,11 @@ class Request extends ApiRequest {
 		$path = "/{$facebook_product_catalog_id}/products";
 		parent::__construct( $path, 'GET' );
 
-		// DEBUG: Log the fields being requested
-		error_log("DEBUG: Facebook API Request - Fields requested: " . $fields_string);
-		
 		$this->set_params(
 			array(
 				'filter' => '{"retailer_id":{"eq":"' . $facebook_product_retailer_id . '"}}',
 				'fields' => $fields_string,
 			)
 		);
-		
-		// DEBUG: Log the actual params being set
-		error_log("DEBUG: Facebook API Request - Params set: " . json_encode($this->get_params()));
 	}
 }
