@@ -153,10 +153,14 @@ async function validateFacebookSync(productId, productName, waitSeconds = 10) {
     const execAsync = promisify(exec);
 
     // Call the Facebook sync validator
-    const { stdout } = await execAsync(
+    const { stdout, stderr } = await execAsync(
       `php e2e-facebook-sync-validator-simple.php ${productId} ${waitSeconds}`,
       { cwd: __dirname }
     );
+
+    if (stderr) {
+      console.log(`🔧 Debug: PHP stderr: ${stderr}`);
+    }
 
     const result = JSON.parse(stdout);
 
