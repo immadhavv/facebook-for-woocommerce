@@ -112,7 +112,7 @@ async function checkForPhpErrors(page) {
 }
 
 // Helper function to wait for manual inspection
-async function waitForManualInspection(page, seconds = 20) {
+async function waitForManualInspection(page, seconds = 60) {
   console.log(`⏳ Waiting ${seconds} seconds before cleanup to allow manual catalog inspection...`);
   await page.waitForTimeout(seconds * 1000);
 }
@@ -384,7 +384,7 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
       await checkForPhpErrors(page);
 
       console.log('✅ Simple product creation test completed successfully');
-      await waitForManualInspection(page,seconds = 60);
+      await waitForManualInspection(page);
 
       // Validate sync to Meta catalog and fields from Meta
       await validateFacebookSync(productId, productName, 60);
