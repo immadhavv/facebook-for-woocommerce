@@ -276,12 +276,11 @@ class FacebookSyncValidator {
             $api = facebook_for_woocommerce()->get_api();
             $catalog_id = $this->integration->get_product_catalog_id();
 
-            // Define fields we want to fetch for validation - note product_group{id} for nested structure
-            $fields = 'id,name,price,description,availability,retailer_id,condition,brand,color,size,product_group{id}';
-
             $this->result['debug'][] = "Fetching Facebook data for retailer_id: {$retailer_id} (context: {$context})";
 
-            $response = $api->get_product_facebook_ids($catalog_id, $retailer_id, $fields);
+            // Use get_product_facebook_fields to get all product data in one call (like the old validator)
+            $fields = 'id,name,price,description,availability,retailer_id,condition,brand,color,size,product_group{id}';
+            $response = $api->get_product_facebook_fields($catalog_id, $retailer_id, $fields);
             $this->result['debug'][] = "Facebook API Response: " . print_r($response, true);
 
             if ($response && $response->response_data && isset($response->response_data['data'][0])) {
@@ -313,6 +312,7 @@ class FacebookSyncValidator {
                 $this->result['debug'][] = "No Facebook data found for retailer_id: {$retailer_id}";
                 return ['found' => false];
             }
+
         } catch (Exception $e) {
             $this->result['debug'][] = "Facebook API error for {$retailer_id}: " . $e->getMessage();
             return ['found' => false, 'error' => $e->getMessage()];
