@@ -32,7 +32,7 @@ class FacebookSyncValidator {
     private $integration;
     private $result;
 
-    public function __construct($product_id, $wait_seconds = 5) {
+    public function __construct($product_id, $wait_seconds = 10) {
         $this->product_id = (int)$product_id;
         $this->result = [
             'success' => false,
