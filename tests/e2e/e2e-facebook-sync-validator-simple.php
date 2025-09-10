@@ -9,7 +9,7 @@
  */
 
 // Bootstrap WordPress
-$wp_path = '/tmp/wordpress/wp-load.php';
+$wp_path = '/Users/nmadhav/Local Sites/wooc-auto-mbe-site/app/public/wp-load.php';
 
 if (!file_exists($wp_path)) {
     echo json_encode([
@@ -431,7 +431,12 @@ class FacebookSyncValidator {
             $woo_value = $woo_data[$woo_field] ?? '';
             $fb_value = $facebook_data[$fb_field] ?? '';
 
-            if ($this->normalizeValue($woo_value, $woo_field) !== $this->normalizeValue($fb_value, $woo_field)) {
+            $normalized_woo = $this->normalizeValue($woo_value, $woo_field);
+            $normalized_fb = $this->normalizeValue($fb_value, $woo_field);
+
+            if ($normalized_woo !== $normalized_fb) {
+                $this->result['debug'][] = "MISMATCH {$woo_field}: WooCommerce='{$woo_value}' (normalized='{$normalized_woo}') vs Facebook='{$fb_value}' (normalized='{$normalized_fb}')";
+                  
                 $mismatches["{$product_id}_{$woo_field}"] = [
                     'product_id' => $product_id,
                     'field' => $woo_field,
@@ -477,6 +482,9 @@ class FacebookSyncValidator {
         if (empty($price)) {
             return '';
         }
+
+        // Convert to string if it's not already
+        $price = (string)$price;
 
         // Remove common currency symbols
         $price = preg_replace('/[£$€¥₹₽¢]/u', '', $price);

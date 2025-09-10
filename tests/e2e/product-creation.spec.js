@@ -80,8 +80,11 @@ function generateProductName(productType) {
 
 // Helper function to extract product ID from URL
 function extractProductIdFromUrl(url) {
+  console.log(`🔍 URL for ID extraction: ${url}`);
   const urlMatch = url.match(/post=(\d+)/);
-  return urlMatch ? parseInt(urlMatch[1]) : null;
+  const productId = urlMatch ? parseInt(urlMatch[1]) : null;
+  console.log(`📦 Extracted Product ID: ${productId}`);
+  return productId;
 }
 
 // Helper function to publish product
@@ -623,9 +626,30 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
 
       // Extract product ID from URL after publish
       const currentUrl = page.url();
+      console.log(`🔍 Current URL for ID extraction: ${currentUrl}`);
       productId = extractProductIdFromUrl(currentUrl);
       if (productId) {
         console.log(`📦 Variable Product ID: ${productId}`);
+      } else {
+        console.log(`⚠️ Failed to extract product ID from URL: ${currentUrl}`);
+        // Try alternative method: check if we can get it from the page
+        try {
+          const postIdMatch = await page.locator('input[name="post_ID"]').getAttribute('value');
+          if (postIdMatch) {
+            productId = parseInt(postIdMatch);
+            console.log(`📦 Variable Product ID (from post_ID field): ${productId}`);
+          } else {
+            // Check for product ID in page content
+            const pageContent = await page.content();
+            const contentMatch = pageContent.match(/post=(\d+)/);
+            if (contentMatch) {
+              productId = parseInt(contentMatch[1]);
+              console.log(`📦 Variable Product ID (from page content): ${productId}`);
+            }
+          }
+        } catch (fallbackError) {
+          console.log(`⚠️ Fallback ID extraction also failed: ${fallbackError.message}`);
+        }
       }
 
       // Verify no PHP fatal errors
