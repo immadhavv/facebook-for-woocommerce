@@ -9,7 +9,7 @@
  */
 
 // Bootstrap WordPress
-$wp_path = '/Users/nmadhav/Local Sites/wooc-auto-mbe-site/app/public/wp-load.php';
+$wp_path = '/tmp/wordpress/wp-load.php';
 
 if (!file_exists($wp_path)) {
     echo json_encode([
@@ -435,7 +435,7 @@ class FacebookSyncValidator {
 
             if ($normalized_woo !== $normalized_fb) {
                 $this->result['debug'][] = "MISMATCH {$woo_field}: WooCommerce='{$woo_value}' (normalized='{$normalized_woo}') vs Facebook='{$fb_value}' (normalized='{$normalized_fb}')";
-                  
+
                 $mismatches["{$product_id}_{$woo_field}"] = [
                     'product_id' => $product_id,
                     'field' => $woo_field,
