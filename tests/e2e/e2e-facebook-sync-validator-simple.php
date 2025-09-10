@@ -9,7 +9,7 @@
  */
 
 // Bootstrap WordPress
-$wp_path = '/tmp/wordpress/wp-load.php';
+$wp_path = '/Users/nmadhav/Local Sites/wooc-auto-mbe-site/app/public/wp-load.php';
 
 if (!file_exists($wp_path)) {
     echo json_encode([
@@ -106,7 +106,8 @@ class FacebookSyncValidator {
             // Step 3: Compare fields between platforms
             $this->compareFields($data);
 
-            $this->result['success'] = true;
+            // Set success based on sync status and no mismatches
+            $this->result['success'] = ($this->result['sync_status'] === 'synced' && count($this->result['mismatches']) === 0);
         } catch (Exception $e) {
             $this->result['error'] = $e->getMessage();
             $this->result['debug'][] = "Validation failed: " . $e->getMessage();
@@ -322,15 +323,46 @@ class FacebookSyncValidator {
      */
     private function checkSyncStatus($data) {
         if ($data['type'] === 'variable') {
-            // For variable products, check parent group status
-            $parent_product = $data['products'][0]; // First is always parent
-            if ($parent_product['facebook_data']['found'] ?? false) {
+            // Get all variations (ignore parent group - it doesn't exist in Facebook)
+            $variations = array_filter($data['products'], function($product) {
+                return $product['type'] === 'variation';
+            });
+
+            $synced_variations = array_filter($variations, function($product) {
+                return $product['facebook_data']['found'] ?? false;
+            });
+
+            // Check if all variations have the same product group ID
+            $product_group_ids = array_unique(array_filter(array_map(function($variation) {
+                return $variation['facebook_data']['product_group_id'] ?? null;
+            }, $synced_variations)));
+
+            // Variable product is synced if:
+            // 1. ALL variations exist in Facebook
+            // 2. All variations belong to the same product group
+            if (count($variations) > 0 && count($synced_variations) === count($variations) && count($product_group_ids) === 1) {
                 $this->result['sync_status'] = 'synced';
-                $this->result['facebook_id'] = $parent_product['facebook_data']['id'] ?? null;
-                $this->result['debug'][] = "Variable product group is synced with Facebook ID: " . ($this->result['facebook_id'] ?? 'unknown');
+                $this->result['facebook_id'] = reset($product_group_ids); // Use the common group ID
+                $this->result['debug'][] = "Variable product fully synced - all " . count($variations) . " variations found in Facebook with same product group: " . $this->result['facebook_id'];
             } else {
                 $this->result['sync_status'] = 'not_synced';
-                $this->result['debug'][] = "Variable product group is not synced to Facebook";
+                $synced_count = count($synced_variations);
+                $total_count = count($variations);
+
+                if ($synced_count < $total_count) {
+                    // Identify missing variations
+                    $missing_variations = array_filter($variations, function($product) {
+                        return !($product['facebook_data']['found'] ?? false);
+                    });
+                    $missing_retailer_ids = array_map(function($product) {
+                        return $product['retailer_id'];
+                    }, $missing_variations);
+
+                    $this->result['debug'][] = "Variable product not fully synced - only {$synced_count}/{$total_count} variations found in Facebook";
+                    $this->result['debug'][] = "Missing variations from Facebook: " . implode(', ', $missing_retailer_ids);
+                } elseif (count($product_group_ids) > 1) {
+                    $this->result['debug'][] = "Variable product not synced - variations belong to different product groups: " . implode(', ', $product_group_ids);
+                }
             }
         } else {
             // For simple products
@@ -368,7 +400,7 @@ class FacebookSyncValidator {
             if (count($product_mismatches) > 0) {
                 $mismatches = array_merge($mismatches, $product_mismatches);
 
-                if ($product_data['type'] === 'variation') {
+                if (isset($product_data['attributes'])) {
                     $this->result['debug'][] = "Field mismatches found for variation {$product_data['id']} ({$product_data['attributes']})";
                 } else {
                     $this->result['debug'][] = "Field mismatches found for product {$product_data['id']}";
@@ -399,7 +431,7 @@ class FacebookSyncValidator {
             $woo_value = $woo_data[$woo_field] ?? '';
             $fb_value = $facebook_data[$fb_field] ?? '';
 
-            if ($this->normalizeValue($woo_value) !== $this->normalizeValue($fb_value)) {
+            if ($this->normalizeValue($woo_value, $woo_field) !== $this->normalizeValue($fb_value, $woo_field)) {
                 $mismatches["{$product_id}_{$woo_field}"] = [
                     'product_id' => $product_id,
                     'field' => $woo_field,
@@ -422,8 +454,54 @@ class FacebookSyncValidator {
         return substr($text, 0, $length) . '...';
     }
 
-    private function normalizeValue($value) {
-        return trim(strtolower((string)$value));
+    private function normalizeValue($value, $field = '') {
+        $normalized = trim(strtolower((string)$value));
+
+        // Special handling for price fields
+        if ($field === 'price') {
+            return $this->normalizePrice($normalized);
+        }
+
+        return $normalized;
+    }
+
+    /**
+     * Normalize price values to handle different currency formats
+     * Examples:
+     * "34 GBP" -> "34.00"
+     * "£34.00" -> "34.00"
+     * "$25.99" -> "25.99"
+     * "19.99 USD" -> "19.99"
+     */
+    private function normalizePrice($price) {
+        if (empty($price)) {
+            return '';
+        }
+
+        // Remove common currency symbols
+        $price = preg_replace('/[£$€¥₹₽¢]/u', '', $price);
+
+        // Remove currency codes (USD, GBP, EUR, etc.)
+        $price = preg_replace('/\b(usd|gbp|eur|jpy|aud|cad|chf|cny|inr|rub|brl|krw|sgd|hkd|nok|sek|dkk|pln|czk|huf|ils|php|thb|myr|idr|vnd|zar|try|mxn|nzd|aed|sar)\b/i', '', $price);
+
+        // Remove extra whitespace and non-numeric characters except dots and commas
+        $price = preg_replace('/[^\d.,]/', '', trim($price));
+
+        // Handle different decimal separators (convert comma to dot for standardization)
+        if (preg_match('/,\d{1,2}$/', $price)) {
+            // Comma as decimal separator (e.g., "1234,56")
+            $price = str_replace(',', '.', $price);
+        } else {
+            // Remove thousands separators (commas) but keep decimal dots
+            $price = str_replace(',', '', $price);
+        }
+
+        // Convert to float and back to ensure consistent decimal places
+        if (is_numeric($price)) {
+            return number_format((float)$price, 2, '.', '');
+        }
+
+        return $price;
     }
 
     public function getJsonResult() {
