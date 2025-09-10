@@ -134,8 +134,32 @@ function debugFacebookAPI($product_id) {
         } catch (Exception $e) {
             $debug[] = "❌ Full API call failed: " . $e->getMessage();
         }
-
-        // Test 3: Check if there are any differences in the requests
+        
+        // Test 3: Try direct API request to bypass any potential issues
+        $debug[] = "\nTEST 3: Direct API Request";
+        try {
+            $direct_path = "/{$catalog_id}/products";
+            $direct_request = new \WooCommerce\Facebook\API\Request($direct_path, 'GET');
+            $direct_request->set_params([
+                'filter' => '{"retailer_id":{"eq":"' . $retailer_id . '"}}',
+                'fields' => 'id,name,price,description,availability,retailer_id,condition,brand,color,size,product_group{id}'
+            ]);
+            
+            $api->set_response_handler(\WooCommerce\Facebook\API\Response::class);
+            $direct_response = $api->perform_request($direct_request);
+            
+            $debug[] = "✅ Direct API call succeeded";
+            if (isset($direct_response->response_data['data'][0])) {
+                $data = $direct_response->response_data['data'][0];
+                $debug[] = "Direct API - Available fields: " . implode(', ', array_keys($data));
+                $debug[] = "Direct API - Product Name: " . ($data['name'] ?? 'Missing');
+                $debug[] = "Direct API - Product Price: " . ($data['price'] ?? 'Missing');
+            }
+        } catch (Exception $e) {
+            $debug[] = "❌ Direct API call failed: " . $e->getMessage();
+        }
+        
+        // Test 4: Check if there are any differences in the requests
         $debug[] = "\n--- STEP 7: Environment Info ---";
         $debug[] = "PHP Version: " . PHP_VERSION;
         $debug[] = "WordPress Version: " . (defined('WP_VERSION') ? WP_VERSION : 'Unknown');
