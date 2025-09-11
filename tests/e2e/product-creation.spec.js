@@ -540,10 +540,49 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
         console.log('✅ Clicked OK in confirmation popup');
       });
 
-      // STEP 8: Click "Generate variations" button with robust handling
+      // STEP 8: Click "Generate variations" button with extended waiting and multiple selectors
       console.log('🔄 Step 8: Clicking "Generate variations" button...');
-      const generateVariationsBtn = page.locator('button.generate_variations');
-      await generateVariationsBtn.waitFor({ state: 'visible', timeout: 15000 });
+
+      // Try multiple possible selectors for the generate variations button
+      const possibleSelectors = [
+        'button.generate_variations',
+        'button:has-text("Generate variations")',
+        'a:has-text("Generate variations")',
+        '.generate_variations',
+        'input[value*="Generate"]',
+        'button[class*="generate"]'
+      ];
+
+      let generateVariationsBtn = null;
+      let foundSelector = null;
+
+      // Try to find the button with different selectors
+      for (const selector of possibleSelectors) {
+        console.log(`🔍 Trying selector: ${selector}`);
+        const btn = page.locator(selector);
+        try {
+          await btn.waitFor({ state: 'visible', timeout: 5000 });
+          generateVariationsBtn = btn;
+          foundSelector = selector;
+          console.log(`✅ Found button with selector: ${selector}`);
+          break;
+        } catch (error) {
+          console.log(`❌ Selector ${selector} not found`);
+        }
+      }
+
+      if (!generateVariationsBtn) {
+        // Take a screenshot for debugging
+        await safeScreenshot(page, 'generate-variations-button-not-found.png');
+
+        // Try waiting longer on the Variations tab content to load
+        console.log('🔄 Button not found, waiting longer for variations interface...');
+        await page.waitForTimeout(10000);
+
+        // Try again with the primary selector
+        generateVariationsBtn = page.locator('button.generate_variations');
+        await generateVariationsBtn.waitFor({ state: 'visible', timeout: 30000 });
+      }
 
       await generateVariationsBtn.scrollIntoViewIfNeeded();
       await page.waitForTimeout(500);
