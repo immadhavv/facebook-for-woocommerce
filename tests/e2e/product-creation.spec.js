@@ -678,7 +678,7 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
     } finally {
       // Cleanup irrespective of test result
       if (productId) {
-        await cleanupProduct(productId);
+        // await cleanupProduct(productId);
       }
     }
   });
