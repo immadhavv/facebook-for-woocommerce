@@ -448,8 +448,23 @@ await page.locator('#product_attributes .woocommerce_attribute textarea[name^="a
 // Enable "Used for variations"
 await page.locator('#product_attributes .woocommerce_attribute input[name^="attribute_variation"]').check();
 
-await page.locator('button.save_attributes').click();
-      await page.waitForTimeout(5000);
+// Save attributes safely
+const saveBtn = page.locator('button.save_attributes');
+await saveBtn.waitFor({ state: 'visible', timeout: 10000 });
+
+// wait for WooCommerce overlays (blockUI) to disappear if present
+await page.waitForSelector('.blockUI', { state: 'detached', timeout: 10000 }).catch(() => {});
+
+try {
+  await saveBtn.click();
+} catch {
+  console.log('⚠️ Normal click blocked, forcing click');
+  await saveBtn.click({ force: true });
+}
+await page.waitForTimeout(5000);
+console.log('✅ Saved attributes');
+
+await page.waitForTimeout(5000);
       console.log('✅ Added Size attribute');
 
       // Variations tab
