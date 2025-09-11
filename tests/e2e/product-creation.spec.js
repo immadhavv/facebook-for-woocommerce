@@ -404,6 +404,122 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
     }
   }
   });
+  test('chat Create variable product with attributes', async ({ page }) => {
+    try {
+      await loginToWordPress(page);
+      await page.goto(`${baseURL}/wp-admin/post-new.php?post_type=product`, { waitUntil: 'networkidle', timeout: 120000 });
+
+      await page.waitForSelector('#title', { timeout: 120000 });
+      await page.fill('#title', 'Test Variable Product - E2E - chat');
+
+      await page.selectOption('#product-type', 'variable');
+      console.log('✅ Set product type to variable');
+      await page.waitForTimeout(5000);
+
+      console.log('🔄 Waiting for variable product interface to load...');
+      try {
+        await page.waitForSelector('.product_data_tabs li a[href="#product_attributes"]', { timeout: 30000 });
+      } catch {
+        await page.reload({ waitUntil: 'networkidle', timeout: 120000 });
+        await page.waitForSelector('#title', { timeout: 120000 });
+        await page.selectOption('#product-type', 'variable');
+        await page.waitForTimeout(5000);
+      }
+      console.log('✅ Variable product interface loaded');
+
+      // Attributes tab
+      const attributesTab = page.locator('.product_data_tabs li:has(a[href="#product_attributes"]) a');
+      await attributesTab.waitFor({ state: 'visible', timeout: 30000 });
+      await attributesTab.click();
+      await page.waitForTimeout(2000);
+      await page.waitForSelector('#product_attributes', { state: 'visible', timeout: 15000 });
+      console.log('✅ Switched to Attributes tab');
+
+      // Add Size attribute
+      // Attribute name
+await page.fill('#product_attributes .woocommerce_attribute input[name^="attribute_names"]', 'Size');
+
+// Attribute values
+await page.fill('#product_attributes .woocommerce_attribute textarea[name^="attribute_values"]', 'Small | Medium | Large');
+
+// Trigger blur
+await page.locator('#product_attributes .woocommerce_attribute textarea[name^="attribute_values"]').press('Tab');
+
+// Enable "Used for variations"
+await page.locator('#product_attributes .woocommerce_attribute input[name^="attribute_variation"]').check();
+
+await page.locator('button.save_attributes').click();
+      await page.waitForTimeout(5000);
+      console.log('✅ Added Size attribute');
+
+      // Variations tab
+      const variationsTab = page.locator('.product_data_tabs li:has(a[href="#variable_product_options"]) a');
+      await variationsTab.click();
+      await page.waitForTimeout(2000);
+      await page.waitForSelector('#variable_product_options', { state: 'visible', timeout: 15000 });
+      console.log('✅ Switched to Variations tab');
+
+      // FIXED: generate variations
+      // Generate variations
+console.log('🔄 Generating variations...');
+const generateBtn = page.locator('button.generate_variations');
+
+// Make sure it's visible & enabled
+await generateBtn.waitFor({ state: 'visible', timeout: 10000 });
+
+// Click it
+await generateBtn.click();
+
+// Handle WooCommerce confirm dialog ("Are you sure you want to generate variations?")
+page.once('dialog', async dialog => {
+  console.log(`⚠️ Confirm dialog: ${dialog.message()}`);
+  await dialog.accept();
+});
+
+await page.waitForTimeout(5000);
+console.log('✅ Clicked Generate variations');
+
+      const variations = await page.locator('.woocommerce_variation').count();
+      console.log(`Found ${variations} variations`);
+      if (variations > 0) {
+        for (let i = 0; i < Math.min(variations, 2); i++) {
+          const variation = page.locator('.woocommerce_variation').nth(i);
+          const expandBtn = variation.locator('.expand_variation');
+          if (await expandBtn.isVisible()) {
+            await expandBtn.click();
+            await page.waitForTimeout(1000);
+          }
+          const priceField = variation.locator('input[name*="variable_regular_price"]').first();
+          if (await priceField.isVisible()) {
+            await priceField.fill(`${25 + i}.99`);
+            console.log(`✅ Set price for variation ${i + 1}`);
+          }
+        }
+        const saveBtn = page.locator('button.save-variation-changes, .save-variation-changes');
+        if (await saveBtn.isVisible()) {
+          await saveBtn.click();
+          await page.waitForTimeout(5000);
+          console.log('✅ Saved variation changes');
+        }
+      }
+
+      // Publish
+      const publishButton = page.locator('#publish');
+      if (await publishButton.isVisible()) {
+        await publishButton.click();
+        await page.waitForTimeout(5000);
+        console.log('✅ Published variable product');
+      }
+
+      const pageContent = await page.content();
+      expect(pageContent).not.toContain('Fatal error');
+      console.log('✅ Variable product creation test completed successfully');
+    } catch (error) {
+      console.log(`⚠️ Variable product test failed: ${error.message}`);
+      await safeScreenshot(page, 'variable-product-test-failure.png');
+      throw error;
+    }
+  });
 
   test('Create variable product with attributes - WORKING VERSION WITH VALIDATOR', async ({ page }, testInfo) => {
     let productId = null;
