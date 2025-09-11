@@ -293,7 +293,7 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
 
     // Fill product title
     await page.waitForSelector('#title', { timeout: 120000 });
-    await page.fill('#title', 'Clean Variable Product Test');
+    await page.fill('#title', 'Clean Variable Product Test-E2E');
     console.log('✅ Product title filled');
 
     // Set up dialog handler for WooCommerce tour popup
@@ -412,7 +412,7 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
       await checkForPhpErrors(page);
 
       // Validate sync to Meta catalog and fields from Meta
-      await validateFacebookSync(productId, productName);
+      await validateFacebookSync(productId, "Clean Variable Product Test-E2E");
 
       console.log('✅ CLEAN VARIABLE product creation test completed successfully');
       await waitForManualInspection(page);
