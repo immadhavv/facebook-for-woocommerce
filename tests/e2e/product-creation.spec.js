@@ -540,61 +540,28 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
         console.log('✅ Clicked OK in confirmation popup');
       });
 
-      // STEP 8: Click "Generate variations" button with extended waiting and multiple selectors
+      // STEP 8: Click "Generate variations" button - simplified approach targeting your exact HTML
       console.log('🔄 Step 8: Clicking "Generate variations" button...');
 
-      // Try multiple possible selectors for the generate variations button
-      const possibleSelectors = [
-        'button.generate_variations',
-        'button:has-text("Generate variations")',
-        'a:has-text("Generate variations")',
-        '.generate_variations',
-        'input[value*="Generate"]',
-        'button[class*="generate"]'
-      ];
+      // Target the exact button you found: <button type="button" class="button generate_variations">Generate variations</button>
+      const generateVariationsBtn = page.locator('button.button.generate_variations');
 
-      let generateVariationsBtn = null;
-      let foundSelector = null;
+      console.log('🔍 Waiting for Generate variations button...');
+      await generateVariationsBtn.waitFor({ state: 'visible', timeout: 30000 });
 
-      // Try to find the button with different selectors
-      for (const selector of possibleSelectors) {
-        console.log(`🔍 Trying selector: ${selector}`);
-        const btn = page.locator(selector);
-        try {
-          await btn.waitFor({ state: 'visible', timeout: 5000 });
-          generateVariationsBtn = btn;
-          foundSelector = selector;
-          console.log(`✅ Found button with selector: ${selector}`);
-          break;
-        } catch (error) {
-          console.log(`❌ Selector ${selector} not found`);
-        }
-      }
-
-      if (!generateVariationsBtn) {
-        // Take a screenshot for debugging
-        await safeScreenshot(page, 'generate-variations-button-not-found.png');
-
-        // Try waiting longer on the Variations tab content to load
-        console.log('🔄 Button not found, waiting longer for variations interface...');
-        await page.waitForTimeout(10000);
-
-        // Try again with the primary selector
-        generateVariationsBtn = page.locator('button.generate_variations');
-        await generateVariationsBtn.waitFor({ state: 'visible', timeout: 30000 });
-      }
-
+      console.log('✅ Generate variations button found, preparing to click...');
       await generateVariationsBtn.scrollIntoViewIfNeeded();
-      await page.waitForTimeout(500);
+      await page.waitForTimeout(1000);
 
       try {
         await generateVariationsBtn.click({ force: true });
+        console.log('✅ Clicked "Generate variations" button (force click)');
       } catch (clickError) {
-        console.log('Force click failed, trying focus approach...');
+        console.log('Force click failed, trying focus + Enter approach...');
         await generateVariationsBtn.focus();
         await page.keyboard.press('Enter');
+        console.log('✅ Clicked "Generate variations" button (keyboard)');
       }
-      console.log('✅ Clicked "Generate variations" button');
 
       // Wait for variations to be generated
       await page.waitForTimeout(10000);
