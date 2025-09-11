@@ -543,11 +543,56 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
       // STEP 8: Click "Generate variations" button - simplified approach targeting your exact HTML
       console.log('🔄 Step 8: Clicking "Generate variations" button...');
 
-      // Target the exact button you found: <button type="button" class="button generate_variations">Generate variations</button>
-      const generateVariationsBtn = page.locator('button.button.generate_variations');
+      // Try multiple selectors to find the Generate variations button
+      const possibleSelectors = [
+        'button.button.generate_variations',         // Your exact HTML: <button type="button" class="button generate_variations">
+        'button.generate_variations',                // Just the generate_variations class
+        'button:has-text("Generate variations")',    // Text-based selector
+        'button[type="button"]:has-text("Generate")', // By type and partial text
+        '.generate_variations',                      // Any element with the class
+        'input[value*="Generate"]'                   // Input variant
+      ];
 
-      console.log('🔍 Waiting for Generate variations button...');
-      await generateVariationsBtn.waitFor({ state: 'visible', timeout: 30000 });
+      let generateVariationsBtn = null;
+      let foundSelector = null;
+
+      // Try each selector with a short timeout
+      for (const selector of possibleSelectors) {
+        console.log(`🔍 Trying selector: ${selector}`);
+        try {
+          const btn = page.locator(selector);
+          await btn.waitFor({ state: 'visible', timeout: 3000 });
+          generateVariationsBtn = btn;
+          foundSelector = selector;
+          console.log(`✅ Found Generate variations button with selector: ${selector}`);
+          break;
+        } catch (error) {
+          console.log(`❌ Selector ${selector} not found or not visible`);
+        }
+      }
+
+      if (!generateVariationsBtn) {
+        // Take screenshot for debugging
+        await safeScreenshot(page, 'generate-variations-button-debug.png');
+
+        // Log what's actually on the page
+        const pageContent = await page.content();
+        console.log('🔍 Looking for button-related elements in page...');
+
+        // Check if the button text exists anywhere
+        if (pageContent.includes('Generate variations')) {
+          console.log('✅ "Generate variations" text found in page content');
+        } else {
+          console.log('❌ "Generate variations" text NOT found in page content');
+        }
+
+        // Fallback: try waiting longer with the primary selector
+        console.log('🔄 No selector worked, trying longer wait with primary selector...');
+        generateVariationsBtn = page.locator('button.generate_variations');
+        await generateVariationsBtn.waitFor({ state: 'visible', timeout: 30000 });
+      }
+
+      console.log(`✅ Generate variations button found with selector: ${foundSelector || 'fallback'}`);
 
       console.log('✅ Generate variations button found, preparing to click...');
       await generateVariationsBtn.scrollIntoViewIfNeeded();
