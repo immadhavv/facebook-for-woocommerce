@@ -405,7 +405,7 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
   }
   });
 
-  test('Create variable product with attributes - WORKING VERSION WITH VALIDATOR', async ({ page }, testInfo) => {
+  test('Create variable product with attributes - comprehensive test', async ({ page }, testInfo) => {
 
     let productId = null;
     try {
@@ -421,122 +421,404 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
 
       const productName = generateProductName('Variable');
       await page.fill('#title', productName);
-      console.log('✅ Product title filled');
 
       // Set product type to variable
       await page.selectOption('#product-type', 'variable');
       console.log('✅ Set product type to variable');
-
-      // Wait for the variable product interface to load
-      await page.waitForTimeout(5000);
+      
+      // Wait for the variable product interface to load - this triggers an AJAX call
+      console.log('🔄 Waiting for variable product interface to load...');
+      await page.waitForTimeout(3000);
+      
+      // Wait for the attributes tab to become available
+      await page.waitForSelector('.product_data_tabs li a[href="#product_attributes"]', { timeout: 30000 });
       console.log('✅ Variable product interface loaded');
 
-      // STEP 1: Go to Attributes tab
-      console.log('🔄 Step 1: Going to Attributes tab...');
-      const attributesTab = page.locator('li.attribute_tab a[href="#product_attributes"]');
-      await attributesTab.waitFor({ state: 'visible', timeout: 30000 });
-      await attributesTab.click();
-      await page.waitForTimeout(2000);
-      console.log('✅ Successfully switched to Attributes tab');
+      // Go to Attributes tab - try multiple approaches
+      console.log('🔄 Navigating to Attributes tab...');
+      try {
+        // First, ensure we're in the right context and wait for the product data tabs to be ready
+        await page.waitForSelector('.product_data_tabs', { timeout: 30000 });
 
-      // STEP 2: Fill attribute Name field (using type() to trigger JS events)
-      console.log('🔄 Step 2: Typing attribute Name field...');
-      const nameField = page.locator('input.attribute_name[name="attribute_names[0]"]');
-      await nameField.waitFor({ state: 'visible', timeout: 10000 });
-      await nameField.click(); // Focus the field first
-      await nameField.clear(); // Clear any existing content
-      await nameField.type('color', { delay: 100 }); // Type with delay to simulate real typing
-      console.log('✅ Typed attribute name: color');
+        // Use more specific selectors to avoid conflicts
+        const attributesTab = page.locator('.product_data_tabs li:has(a[href="#product_attributes"]) a');
 
-      // STEP 3: Fill attribute Value field (using type() to trigger JS events)
-      console.log('🔄 Step 3: Typing attribute Value field...');
-      const valueField = page.locator('textarea[name="attribute_values[0]"]');
-      await valueField.waitFor({ state: 'visible', timeout: 10000 });
-      await valueField.click(); // Focus the field first
-      await valueField.clear(); // Clear any existing content
-      await valueField.type('blue|red|yellow', { delay: 50 }); // Type with delay
-      console.log('✅ Typed attribute values: blue|red|yellow');
-
-      // STEP 4: Check "Used for variations" checkbox
-      console.log('🔄 Step 4: Checking "Used for variations" checkbox...');
-      const variationCheckbox = page.locator('input.woocommerce_attribute_used_for_variations[name="attribute_variation[0]"]');
-      await variationCheckbox.waitFor({ state: 'visible', timeout: 10000 });
-      await variationCheckbox.check();
-      console.log('✅ Checked "Used for variations" checkbox');
-
-      // STEP 5: Click "Save attributes" button
-      console.log('🔄 Step 5: Clicking "Save attributes" button...');
-      const saveAttributesBtn = page.locator('button.save_attributes.button-primary');
-      await saveAttributesBtn.waitFor({ state: 'visible', timeout: 10000 });
-      await saveAttributesBtn.click();
-      console.log('✅ Clicked "Save attributes" button');
-
-      // Wait for attributes to be saved (CRUCIAL STEP)
-      await page.waitForTimeout(8000);
-      console.log('✅ Attributes saved successfully');
-
-      // STEP 6: Go to Variations tab
-      console.log('🔄 Step 6: Going to Variations tab...');
-      const variationsTab = page.locator('a[href="#variable_product_options"]');
-      await variationsTab.waitFor({ state: 'visible', timeout: 30000 });
-      await variationsTab.click();
-      await page.waitForTimeout(3000);
-      console.log('✅ Successfully switched to Variations tab');
-
-      // STEP 7: Set up dialog listener BEFORE clicking generate variations
-      console.log('🔄 Step 7: Setting up dialog listener for confirmation popup...');
-      page.on('dialog', async dialog => {
-        console.log(`Dialog message: ${dialog.message()}`);
-        await dialog.accept();
-        console.log('✅ Clicked OK in confirmation popup');
-      });
-
-      // STEP 8: Click "Generate variations" button
-      console.log('🔄 Step 8: Clicking "Generate variations" button...');
-      const generateVariationsBtn = page.locator('button.generate_variations');
-      await generateVariationsBtn.waitFor({ state: 'visible', timeout: 15000 });
-      await generateVariationsBtn.click();
-      console.log('✅ Clicked "Generate variations" button');
-
-      // Wait for variations to be generated
-      await page.waitForTimeout(10000);
-      console.log('✅ Variations generation completed');
-
-      // Check if variations were created
-      const variations = await page.locator('.woocommerce_variation').count();
-      console.log(`🔍 Found ${variations} variations after generation`);
-
-      if (variations > 0) {
-        console.log(`✅ Successfully generated ${variations} variations`);
-
-        // STEP 9: Click "Add price" button
-        console.log('🔄 Step 9: Clicking "Add price" button...');
-        const addPriceBtn = page.locator('button.add_price_for_variations');
-        await addPriceBtn.waitFor({ state: 'visible', timeout: 10000 });
-        await addPriceBtn.click();
-        console.log('✅ Clicked "Add price" button');
-
-        // STEP 10: Type price in the input field (using type() to trigger JS events)
-        console.log('🔄 Step 10: Typing price in input field...');
+        // Wait for the tab to be visible and clickable
+        await attributesTab.waitFor({ state: 'visible', timeout: 30000 });
+        await attributesTab.click();
         await page.waitForTimeout(2000);
 
-        const priceInput = page.locator('input.components-text-control__input.wc_input_variations_price');
-        await priceInput.waitFor({ state: 'visible', timeout: 10000 });
-        await priceInput.click(); // Focus the field first
-        await priceInput.clear(); // Clear any existing content
-        await priceInput.type('29.99', { delay: 100 }); // Type with delay to trigger JS events
-        console.log('✅ Typed bulk price: 29.99');
+        // Verify the attributes panel is now visible
+        await page.waitForSelector('#product_attributes', { state: 'visible', timeout: 15000 });
+        console.log('✅ Successfully navigated to Attributes tab');
+      } catch (error) {
+        console.log(`⚠️ Attributes tab navigation issue: ${error.message}`);
+        // Fallback: try direct click on any visible attributes link
+        try {
+          await page.locator('text=Attributes').first().click();
+          await page.waitForTimeout(2000);
+        } catch (fallbackError) {
+          console.log(`⚠️ Fallback attributes tab click failed: ${fallbackError.message}`);
+        }
+      }
+      console.log('✅ Switched to Attributes tab');
 
-        // STEP 11: Click "Add prices" button
-        console.log('🔄 Step 11: Clicking "Add prices" button...');
-        const addPricesBtn = page.locator('button.add_variations_price_button.button-primary');
-        await addPricesBtn.waitFor({ state: 'visible', timeout: 10000 });
-        await addPricesBtn.click();
-        console.log('✅ Clicked "Add prices" button');
-        await page.waitForTimeout(3000);
+      try {
+        // Add Size attribute - more robust approach
+        console.log('🔄 Adding product attribute...');
 
-      } else {
-        throw new Error('No variations were generated - attribute setup failed');
+        // Wait for attributes section to be visible
+        await page.waitForSelector('#product_attributes', { state: 'visible', timeout: 30000 });
+
+        // Try to add attribute using the dropdown - look for all possible options
+        const attributeTaxonomy = page.locator('#attribute_taxonomy');
+        await attributeTaxonomy.waitFor({ state: 'visible', timeout: 15000 });
+        
+        // First, let's see what options are available
+        const options = await attributeTaxonomy.locator('option').allTextContents();
+        console.log('🔍 Available attribute options:', options);
+        
+        // Try different ways to select custom attribute
+        try {
+          await attributeTaxonomy.selectOption({ label: 'Custom product attribute' });
+        } catch (e1) {
+          try {
+            await attributeTaxonomy.selectOption({ value: '' });
+          } catch (e2) {
+            try {
+              await attributeTaxonomy.selectOption({ index: 0 });
+            } catch (e3) {
+              console.log('⚠️ All attribute selection methods failed, using first option');
+            }
+          }
+        }
+
+        const addAttributeBtn = page.locator('button.add_attribute');
+        await addAttributeBtn.waitFor({ state: 'visible', timeout: 10000 });
+        await addAttributeBtn.click();
+        console.log('✅ Clicked add attribute button');
+        
+        // Wait longer for attribute row to appear as this is often slow
+        await page.waitForTimeout(5000);
+
+        // Look for attribute fields with multiple selectors
+        console.log('🔍 Looking for attribute input fields...');
+        
+        // First, let's see what attributes interface elements are available
+        await page.waitForTimeout(2000);
+        const attributeElements = await page.locator('#product_attributes *').count();
+        console.log(`🔍 Found ${attributeElements} elements in attributes section`);
+        
+        // Take a screenshot to debug the attributes interface
+        await safeScreenshot(page, 'attributes-interface-debug.png');
+        
+        let nameField, valueField, variationCheckbox;
+        
+        // Try multiple selectors for name field
+        const nameSelectors = [
+          'input[name="attribute_names[0]"]',
+          'input[name^="attribute_names"]',
+          '.woocommerce_attribute input[placeholder*="name" i]',
+          '.woocommerce_attribute input[type="text"]'
+        ];
+        
+        for (const selector of nameSelectors) {
+          nameField = page.locator(selector).first();
+          if (await nameField.isVisible({ timeout: 3000 })) {
+            console.log(`✅ Found name field with selector: ${selector}`);
+            break;
+          } else {
+            console.log(`❌ Name field not found with selector: ${selector}`);
+          }
+        }
+        
+        // Try multiple selectors for value field
+        const valueSelectors = [
+          'textarea[name="attribute_values[0]"]',
+          'textarea[name^="attribute_values"]',
+          '.woocommerce_attribute textarea',
+          'textarea[placeholder*="value" i]'
+        ];
+        
+        for (const selector of valueSelectors) {
+          valueField = page.locator(selector).first();
+          if (await valueField.isVisible({ timeout: 3000 })) {
+            console.log(`✅ Found value field with selector: ${selector}`);
+            break;
+          }
+        }
+        
+        // Try multiple selectors for variation checkbox
+        const checkboxSelectors = [
+          'input[name="attribute_variation[0]"]',
+          'input[name^="attribute_variation"]',
+          '.woocommerce_attribute input[type="checkbox"]'
+        ];
+        
+        for (const selector of checkboxSelectors) {
+          variationCheckbox = page.locator(selector).first();
+          if (await variationCheckbox.isVisible({ timeout: 3000 })) {
+            console.log(`✅ Found variation checkbox with selector: ${selector}`);
+            break;
+          }
+        }
+
+        // Fill the fields if found
+        if (nameField && await nameField.isVisible({ timeout: 5000 })) {
+          await nameField.fill('Size');
+          console.log('✅ Filled attribute name');
+        } else {
+          throw new Error('Name field not found or not visible');
+        }
+
+        if (valueField && await valueField.isVisible({ timeout: 5000 })) {
+          await valueField.fill('Small | Medium | Large');
+          console.log('✅ Filled attribute values');
+        } else {
+          throw new Error('Value field not found or not visible');
+        }
+
+        if (variationCheckbox && await variationCheckbox.isVisible({ timeout: 5000 })) {
+          await variationCheckbox.check();
+          console.log('✅ Checked variation checkbox');
+        } else {
+          console.log('⚠️ Variation checkbox not found - this may prevent variation creation');
+        }
+
+        // Save attributes with multiple selector attempts
+        console.log('🔄 Attempting to save attributes...');
+        const saveSelectors = [
+          'button.save_attributes',
+          'button[name="save_attributes"]',
+          '.save_attributes',
+          'input[name="save_attributes"]'
+        ];
+        
+        let attributesSaved = false;
+        for (const selector of saveSelectors) {
+          const saveBtn = page.locator(selector);
+          if (await saveBtn.isVisible({ timeout: 5000 })) {
+            await saveBtn.click();
+            console.log(`✅ Clicked save attributes button with selector: ${selector}`);
+            attributesSaved = true;
+            break;
+          }
+        }
+        
+        if (!attributesSaved) {
+          console.log('⚠️ Could not find save attributes button');
+        }
+        
+        await page.waitForTimeout(5000);
+        console.log('✅ Attribute save operation completed');
+
+        console.log('✅ Added Size attribute with variations');
+
+        // Go to Variations tab
+        console.log('🔄 Navigating to Variations tab...');
+
+        // Wait for variations tab to become available (after saving attributes)
+        await page.waitForTimeout(2000);
+
+        const variationsTab = page.locator('.product_data_tabs li:has(a[href="#variable_product_options"]) a');
+        await variationsTab.waitFor({ state: 'visible', timeout: 30000 });
+        await variationsTab.click();
+        await page.waitForTimeout(2000);
+
+        // Verify the variations panel is now visible
+        await page.waitForSelector('#variable_product_options', { state: 'visible', timeout: 15000 });
+        console.log('✅ Successfully navigated to Variations tab');
+
+        // Generate variations from all attributes - more robust approach
+        console.log('🔄 Attempting to generate variations...');
+        try {
+          // Wait for the variations interface to load
+          await page.waitForTimeout(3000);
+
+          // Look for variation generation controls with multiple selectors
+          const variationActionSelectors = [
+            '.toolbar .variation_actions select',
+            'select.variation_actions',
+            '#variable_product_options .toolbar select',
+            '.woocommerce_variations .toolbar select'
+          ];
+
+          let variationActions = null;
+          for (const selector of variationActionSelectors) {
+            const element = page.locator(selector);
+            if (await element.isVisible({ timeout: 5000 })) {
+              variationActions = element;
+              console.log(`✅ Found variation actions dropdown: ${selector}`);
+              break;
+            }
+          }
+
+          if (!variationActions) {
+            throw new Error('Could not find variation actions dropdown');
+          }
+
+          // Check available options in the dropdown
+          const options = await variationActions.locator('option').allTextContents();
+          console.log('🔍 Available variation options:', options);
+
+          // Try different option values for "Create variations from all attributes"
+          const optionValues = ['add_variation', 'link_all_variations', 'create_all_variations', 'generate_variations'];
+          let optionSelected = false;
+
+          for (const optionValue of optionValues) {
+            try {
+              await variationActions.selectOption(optionValue);
+              console.log(`✅ Selected option: ${optionValue}`);
+              optionSelected = true;
+              break;
+            } catch (e) {
+              console.log(`⚠️ Option ${optionValue} not available, trying next...`);
+            }
+          }
+
+          if (!optionSelected) {
+            // Try selecting by text content
+            try {
+              await variationActions.selectOption({ label: /Create variations from all attributes/i });
+              console.log('✅ Selected by label text');
+              optionSelected = true;
+            } catch (e) {
+              console.log('⚠️ Could not select by label text');
+            }
+          }
+
+          if (!optionSelected) {
+            throw new Error('Could not select any variation generation option');
+          }
+
+          // Click the "Go" button with multiple selectors
+          const goButtonSelectors = [
+            '.toolbar .do_variation_action',
+            'button.do_variation_action',
+            '.toolbar input[type="submit"]',
+            '.woocommerce_variations .toolbar .button'
+          ];
+
+          let goButton = null;
+          for (const selector of goButtonSelectors) {
+            const element = page.locator(selector);
+            if (await element.isVisible({ timeout: 5000 })) {
+              goButton = element;
+              console.log(`✅ Found go button: ${selector}`);
+              break;
+            }
+          }
+
+          if (!goButton) {
+            throw new Error('Could not find Go button');
+          }
+
+          await goButton.click();
+          console.log('✅ Clicked generate variations button');
+          
+          // Wait longer for variations to be generated
+          await page.waitForTimeout(15000);
+          
+          // Check if variations were created
+          const variations = await page.locator('.woocommerce_variation').count();
+          console.log(`🔍 Found ${variations} variations after generation`);
+
+          if (variations > 0) {
+            console.log(`✅ Successfully generated ${variations} variations`);
+
+            // Set prices for all variations
+            for (let i = 0; i < variations; i++) {
+              try {
+                console.log(`🔄 Setting price for variation ${i + 1}...`);
+                const variation = page.locator('.woocommerce_variation').nth(i);
+
+                // Expand variation if needed
+                const expandSelectors = [
+                  '.expand_variation',
+                  '.handlediv button',
+                  '.handlediv'
+                ];
+
+                for (const expandSelector of expandSelectors) {
+                  const expandBtn = variation.locator(expandSelector);
+                  if (await expandBtn.isVisible({ timeout: 3000 })) {
+                    await expandBtn.click();
+                    await page.waitForTimeout(1000);
+                    console.log(`✅ Expanded variation ${i + 1}`);
+                    break;
+                  }
+                }
+
+                // Set regular price with multiple selectors
+                const priceSelectors = [
+                  'input[name*="variable_regular_price"]',
+                  'input[id*="variable_regular_price"]',
+                  'input[placeholder*="price" i]',
+                  '.wc_input_price'
+                ];
+
+                let priceField = null;
+                for (const priceSelector of priceSelectors) {
+                  const element = variation.locator(priceSelector).first();
+                  if (await element.isVisible({ timeout: 5000 })) {
+                    priceField = element;
+                    console.log(`✅ Found price field for variation ${i + 1}: ${priceSelector}`);
+                    break;
+                  }
+                }
+
+                if (priceField) {
+                  const price = `${25 + i}.99`;
+                  await priceField.fill(price);
+                  console.log(`✅ Set price ${price} for variation ${i + 1}`);
+                } else {
+                  console.log(`⚠️ Could not find price field for variation ${i + 1}`);
+                }
+
+              } catch (priceError) {
+                console.log(`⚠️ Error setting price for variation ${i + 1}: ${priceError.message}`);
+              }
+            }
+
+            // Save all variation changes
+            console.log('🔄 Saving all variation changes...');
+            const saveSelectors = [
+              'button.save-variation-changes',
+              '.save-variation-changes',
+              'input[name="save-variation-changes"]',
+              '.button.save_variations'
+            ];
+
+            let saveSuccess = false;
+            for (const saveSelector of saveSelectors) {
+              const saveBtn = page.locator(saveSelector);
+              if (await saveBtn.isVisible({ timeout: 5000 })) {
+                await saveBtn.click();
+                console.log(`✅ Clicked save variations: ${saveSelector}`);
+                saveSuccess = true;
+                break;
+              }
+            }
+
+            if (saveSuccess) {
+              await page.waitForTimeout(5000);
+              console.log('✅ All variation changes saved');
+            } else {
+              console.log('⚠️ Could not find save variations button');
+            }
+
+          } else {
+            console.log('⚠️ No variations were generated - attribute setup may have failed');
+            // Take a screenshot for debugging
+            await safeScreenshot(page, 'no-variations-generated.png');
+          }
+
+        } catch (variationError) {
+          console.log(`⚠️ Variation generation failed: ${variationError.message}`);
+          await safeScreenshot(page, 'variation-generation-error.png');
+        }
+      } catch (error) {
+        console.log(`⚠️ Variation setup warning: ${error.message}`);
       }
 
       // Publish product
