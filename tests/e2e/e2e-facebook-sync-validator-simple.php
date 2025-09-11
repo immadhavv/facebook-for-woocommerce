@@ -74,10 +74,18 @@ class FacebookSyncValidator {
     private function initializeProduct() {
         $this->result['debug'][] = "Initializing product: {$this->product_id}";
         $this->product = wc_get_product($this->product_id);
+
         // Fail fast if the product ID doesn't exist in WooCommerce
         if (!$this->product) {
             throw new Exception("Product {$this->product_id} not found");
         }
+
+        // Get and log retailer ID
+        $retailer_id = WC_Facebookcommerce_Utils::get_fb_retailer_id($this->product);
+        $this->result['debug'][] = "Product retailer ID: {$retailer_id} and type: {$this->product->get_type()}";
+
+        // Debug product object in one line
+        $this->result['debug'][] = "Product object: " . json_encode($this->product);
 
         $this->result['product_type'] = $this->product->get_type();
         $this->result['debug'][] = "Initialized {$this->result['product_type']} product: {$this->product->get_name()}";
