@@ -162,7 +162,8 @@ class FacebookSyncValidator {
 
         // All variations
         $variations = $this->product->get_children();
-        $this->result['debug'][] = "Processing " . count($variations) . " variations";
+        $this->result['debug'][] = "Processing " . count($variations) . " variations: [" . implode(', ', $variations) . "]";
+        $this->result['debug'][] = "Parent product ID: " . $this->product->get_id() . " (should not be in variations list above)";
 
         foreach ($variations as $variation_id) {
             $variation = wc_get_product($variation_id);
