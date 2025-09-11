@@ -72,6 +72,7 @@ class FacebookSyncValidator {
 
     // Initialize product
     private function initializeProduct() {
+        $this->result['debug'][] = "Initializing product: {$this->product_id}";
         $this->product = wc_get_product($this->product_id);
         // Fail fast if the product ID doesn't exist in WooCommerce
         if (!$this->product) {
@@ -138,6 +139,7 @@ class FacebookSyncValidator {
 
         $woo_data = $this->extractWooCommerceFields($this->product, $retailer_id);
         $this->result['debug'][] = "Extracted WooCommerce data for simple product";
+        $this->result['debug'][] = "WooCommerce data: " . json_encode($woo_data, JSON_PRETTY_PRINT);
 
         // Get Facebook data
         $facebook_data = $this->fetchFacebookData($retailer_id, 'simple');
