@@ -162,6 +162,15 @@ async function validateFacebookSync(productId, productName, waitSeconds = 10) {
       console.log(`🔧 Debug: PHP stderr: ${stderr}`);
     }
 
+    // 📄 DUMP RAW JSON OUTPUT FROM VALIDATOR
+    console.log('\n' + '='.repeat(80));
+    console.log('📄 RAW JSON OUTPUT FROM FACEBOOK SYNC VALIDATOR:');
+    console.log('='.repeat(80));
+    console.log(stdout);
+    console.log('='.repeat(80));
+    console.log('📄 END OF RAW JSON OUTPUT');
+    console.log('='.repeat(80) + '\n');
+
     const result = JSON.parse(stdout);
 
     // Display results
@@ -390,6 +399,25 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
     expect(pageContent).not.toContain('Parse error');
 
     console.log('✅ Variable product created successfully!');
+
+     // Extract product ID from URL after publish
+      const currentUrl = page.url();
+      productId = extractProductIdFromUrl(currentUrl);
+      if (productId) {
+        console.log(`📦 Product ID: ${productId}`);
+      }
+
+      // Verify no PHP fatal errors
+      await checkForPhpErrors(page);
+
+      // Validate sync to Meta catalog and fields from Meta
+      await validateFacebookSync(productId, productName);
+
+      console.log('✅ CLEAN VARIABLE product creation test completed successfully');
+      await waitForManualInspection(page);
+
+      logTestEnd(testInfo, true);
+
 
   } catch (error) {
     console.log(`❌ Test failed: ${error.message}`);
