@@ -406,12 +406,8 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
   });
 
   test('Create variable product with attributes - WORKING VERSION WITH VALIDATOR', async ({ page }, testInfo) => {
-
     let productId = null;
     try {
-
-       await loginToWordPress(page);
-
       // Navigate to add new product page
       await page.goto(`${baseURL}/wp-admin/post-new.php?post_type=product`, {
         waitUntil: 'networkidle',
@@ -441,22 +437,44 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
       await page.waitForTimeout(2000);
       console.log('✅ Successfully switched to Attributes tab');
 
-      // STEP 2: Fill attribute Name field (using type() to trigger JS events)
+      // STEP 2: Fill attribute Name field with more robust handling
       console.log('🔄 Step 2: Typing attribute Name field...');
       const nameField = page.locator('input.attribute_name[name="attribute_names[0]"]');
       await nameField.waitFor({ state: 'visible', timeout: 10000 });
-      await nameField.click(); // Focus the field first
-      await nameField.clear(); // Clear any existing content
-      await nameField.type('color', { delay: 100 }); // Type with delay to simulate real typing
+
+      // Scroll element into view to ensure it's not obstructed
+      await nameField.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(1000);
+
+      // Try multiple interaction approaches
+      try {
+        await nameField.click({ force: true });
+      } catch (clickError) {
+        console.log('Force click failed, trying focus approach...');
+        await nameField.focus();
+      }
+
+      await nameField.clear();
+      await nameField.type('color', { delay: 100 });
       console.log('✅ Typed attribute name: color');
 
-      // STEP 3: Fill attribute Value field (using type() to trigger JS events)
+      // STEP 3: Fill attribute Value field with robust handling
       console.log('🔄 Step 3: Typing attribute Value field...');
       const valueField = page.locator('textarea[name="attribute_values[0]"]');
       await valueField.waitFor({ state: 'visible', timeout: 10000 });
-      await valueField.click(); // Focus the field first
-      await valueField.clear(); // Clear any existing content
-      await valueField.type('blue|red|yellow', { delay: 50 }); // Type with delay
+
+      await valueField.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(500);
+
+      try {
+        await valueField.click({ force: true });
+      } catch (clickError) {
+        console.log('Force click failed, trying focus approach...');
+        await valueField.focus();
+      }
+
+      await valueField.clear();
+      await valueField.type('blue|red|yellow', { delay: 50 });
       console.log('✅ Typed attribute values: blue|red|yellow');
 
       // STEP 4: Check "Used for variations" checkbox
@@ -543,24 +561,10 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
 
       // STEP 12: Publish the product
       console.log('🔄 Step 12: Publishing product...');
-      const publishButton = page.locator('#publish');
-      await publishButton.waitFor({ state: 'visible', timeout: 30000 });
-      await publishButton.click();
-      await page.waitForTimeout(5000);
-      console.log('✅ Product published successfully');
-
-      // Verify no PHP fatal errors
-      const pageContent = await page.content();
-      expect(pageContent).not.toContain('Fatal error');
-      expect(pageContent).not.toContain('Parse error');
-
-      console.log('✅ Variable product creation test completed successfully');
-
-      await page.waitForTimeout(5000);
+      await publishProduct(page);
 
       // Extract product ID from URL after publish
       const currentUrl = page.url();
-      console.log(`🔍 Current URL for ID extraction: ${currentUrl}`);
       productId = extractProductIdFromUrl(currentUrl);
       if (productId) {
         console.log(`📦 Variable Product ID: ${productId}`);
@@ -589,8 +593,6 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
       // Verify no PHP fatal errors
       await checkForPhpErrors(page);
 
-      await waitForManualInspection(page);
-
       // Validate sync to Meta catalog and fields from Meta
       await validateFacebookSync(productId, productName, 20);
 
@@ -608,7 +610,7 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
     } finally {
       // Cleanup irrespective of test result
       if (productId) {
-        // await cleanupProduct(productId);
+        await cleanupProduct(productId);
       }
     }
   });
