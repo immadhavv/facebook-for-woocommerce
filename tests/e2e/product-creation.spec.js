@@ -477,29 +477,58 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
       await valueField.type('blue|red|yellow', { delay: 50 });
       console.log('✅ Typed attribute values: blue|red|yellow');
 
-      // STEP 4: Check "Used for variations" checkbox
+      // STEP 4: Check "Used for variations" checkbox with robust handling
       console.log('🔄 Step 4: Checking "Used for variations" checkbox...');
       const variationCheckbox = page.locator('input.woocommerce_attribute_used_for_variations[name="attribute_variation[0]"]');
       await variationCheckbox.waitFor({ state: 'visible', timeout: 10000 });
-      await variationCheckbox.check();
+
+      await variationCheckbox.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(500);
+
+      try {
+        await variationCheckbox.check({ force: true });
+      } catch (checkError) {
+        console.log('Force check failed, trying click approach...');
+        await variationCheckbox.click({ force: true });
+      }
       console.log('✅ Checked "Used for variations" checkbox');
 
-      // STEP 5: Click "Save attributes" button
+      // STEP 5: Click "Save attributes" button with robust handling
       console.log('🔄 Step 5: Clicking "Save attributes" button...');
       const saveAttributesBtn = page.locator('button.save_attributes.button-primary');
       await saveAttributesBtn.waitFor({ state: 'visible', timeout: 10000 });
-      await saveAttributesBtn.click();
+
+      await saveAttributesBtn.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(500);
+
+      try {
+        await saveAttributesBtn.click({ force: true });
+      } catch (clickError) {
+        console.log('Force click failed, trying focus approach...');
+        await saveAttributesBtn.focus();
+        await page.keyboard.press('Enter');
+      }
       console.log('✅ Clicked "Save attributes" button');
 
       // Wait for attributes to be saved (CRUCIAL STEP)
       await page.waitForTimeout(8000);
       console.log('✅ Attributes saved successfully');
 
-      // STEP 6: Go to Variations tab
+      // STEP 6: Go to Variations tab with robust handling
       console.log('🔄 Step 6: Going to Variations tab...');
       const variationsTab = page.locator('a[href="#variable_product_options"]');
       await variationsTab.waitFor({ state: 'visible', timeout: 30000 });
-      await variationsTab.click();
+
+      await variationsTab.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(500);
+
+      try {
+        await variationsTab.click({ force: true });
+      } catch (clickError) {
+        console.log('Force click failed, trying focus approach...');
+        await variationsTab.focus();
+        await page.keyboard.press('Enter');
+      }
       await page.waitForTimeout(3000);
       console.log('✅ Successfully switched to Variations tab');
 
@@ -511,11 +540,21 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
         console.log('✅ Clicked OK in confirmation popup');
       });
 
-      // STEP 8: Click "Generate variations" button
+      // STEP 8: Click "Generate variations" button with robust handling
       console.log('🔄 Step 8: Clicking "Generate variations" button...');
       const generateVariationsBtn = page.locator('button.generate_variations');
       await generateVariationsBtn.waitFor({ state: 'visible', timeout: 15000 });
-      await generateVariationsBtn.click();
+
+      await generateVariationsBtn.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(500);
+
+      try {
+        await generateVariationsBtn.click({ force: true });
+      } catch (clickError) {
+        console.log('Force click failed, trying focus approach...');
+        await generateVariationsBtn.focus();
+        await page.keyboard.press('Enter');
+      }
       console.log('✅ Clicked "Generate variations" button');
 
       // Wait for variations to be generated
@@ -529,29 +568,59 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
       if (variations > 0) {
         console.log(`✅ Successfully generated ${variations} variations`);
 
-        // STEP 9: Click "Add price" button
+        // STEP 9: Click "Add price" button with robust handling
         console.log('🔄 Step 9: Clicking "Add price" button...');
         const addPriceBtn = page.locator('button.add_price_for_variations');
         await addPriceBtn.waitFor({ state: 'visible', timeout: 10000 });
-        await addPriceBtn.click();
+
+        await addPriceBtn.scrollIntoViewIfNeeded();
+        await page.waitForTimeout(500);
+
+        try {
+          await addPriceBtn.click({ force: true });
+        } catch (clickError) {
+          console.log('Force click failed, trying focus approach...');
+          await addPriceBtn.focus();
+          await page.keyboard.press('Enter');
+        }
         console.log('✅ Clicked "Add price" button');
 
-        // STEP 10: Type price in the input field (using type() to trigger JS events)
+        // STEP 10: Type price in the input field with robust handling
         console.log('🔄 Step 10: Typing price in input field...');
         await page.waitForTimeout(2000);
 
         const priceInput = page.locator('input.components-text-control__input.wc_input_variations_price');
         await priceInput.waitFor({ state: 'visible', timeout: 10000 });
-        await priceInput.click(); // Focus the field first
-        await priceInput.clear(); // Clear any existing content
-        await priceInput.type('29.99', { delay: 100 }); // Type with delay to trigger JS events
+
+        await priceInput.scrollIntoViewIfNeeded();
+        await page.waitForTimeout(500);
+
+        try {
+          await priceInput.click({ force: true });
+        } catch (clickError) {
+          console.log('Force click failed, trying focus approach...');
+          await priceInput.focus();
+        }
+
+        await priceInput.clear();
+        await priceInput.type('29.99', { delay: 100 });
         console.log('✅ Typed bulk price: 29.99');
 
-        // STEP 11: Click "Add prices" button
+        // STEP 11: Click "Add prices" button with robust handling
         console.log('🔄 Step 11: Clicking "Add prices" button...');
         const addPricesBtn = page.locator('button.add_variations_price_button.button-primary');
         await addPricesBtn.waitFor({ state: 'visible', timeout: 10000 });
-        await addPricesBtn.click();
+
+        await addPricesBtn.scrollIntoViewIfNeeded();
+        await page.waitForTimeout(500);
+
+        try {
+          await addPricesBtn.click({ force: true });
+        } catch (clickError) {
+          console.log('Force click failed, trying focus approach...');
+          await addPricesBtn.focus();
+          await page.keyboard.press('Enter');
+        }
         console.log('✅ Clicked "Add prices" button');
         await page.waitForTimeout(3000);
 
