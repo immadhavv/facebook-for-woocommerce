@@ -270,6 +270,7 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
     await page.setViewportSize({ width: 1280, height: 720 });
     await loginToWordPress(page);
   });
+
   test('Create variable product - MINIMAL CLEAN VERSION', async ({ page }) => {
   try {
     await loginToWordPress(page);
@@ -293,27 +294,35 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
     });
 
     // Handle WooCommerce tour popup if it appears
-    const tourHandler = async () => {
-      try {
-        const gotItButton = page.locator('button.woocommerce-tour-kit-step-navigation__done-btn.is-primary');
-        if (await gotItButton.isVisible({ timeout: 3000 })) {
-          console.log('📋 WooCommerce tour popup detected');
-          await gotItButton.click();
-          console.log('✅ Tour popup dismissed');
-          await page.waitForTimeout(2000);
-        }
-      } catch (e) {
-        // Tour popup might not appear, continue
-      }
-    };
+    // const tourHandler = async () => {
+    //   try {
+    //     const gotItButton = page.locator('button.woocommerce-tour-kit-step-navigation__done-btn.is-primary');
+    //     if (await gotItButton.isVisible({ timeout: 3000 })) {
+    //       console.log('📋 WooCommerce tour popup detected');
+    //       await gotItButton.click();
+    //       console.log('✅ Tour popup dismissed');
+    //       await page.waitForTimeout(2000);
+    //     }
+    //   } catch (e) {
+    //     // Tour popup might not appear, continue
+    //   }
+    // };
 
     // Set product type to variable
     await page.selectOption('#product-type', 'variable');
     console.log('✅ Set product type to variable');
 
-    // Handle potential tour popup after selecting variable type
-    await tourHandler();
-    await page.waitForTimeout(3000);
+      // Dismiss WooCommerce onboarding tour popup if it appears
+  const tourDoneBtn = page.locator('button.woocommerce-tour-kit-step-navigation__done-btn');
+  if (await tourDoneBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
+    console.log('⚠️ WooCommerce tour popup detected, dismissing...');
+    await tourDoneBtn.click({ force: true });
+    await page.waitForTimeout(1000); // give time for overlay to disappear
+}
+
+    // // Handle potential tour popup after selecting variable type
+    // await tourHandler();
+    // await page.waitForTimeout(3000);
 
     // Go to Attributes tab
     console.log('🔄 Going to Attributes tab...');
