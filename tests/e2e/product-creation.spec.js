@@ -510,9 +510,49 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
       }
       console.log('✅ Clicked "Save attributes" button');
 
-      // Wait for attributes to be saved (CRUCIAL STEP)
-      await page.waitForTimeout(8000);
+      // Wait for AJAX request to complete and page to update
+      console.log('🔄 Waiting for attributes to be saved in database...');
+      await page.waitForTimeout(3000);
+
+      // Wait for the success indicator or page reload
+      try {
+        // Check if there's a success message or the page reloads properly
+        await page.waitForFunction(() => {
+          // Look for success indicators or absence of loading states
+          const loadingElements = document.querySelectorAll('.woocommerce-help-tip');
+          return loadingElements.length > 0; // Basic check that page is ready
+        }, { timeout: 10000 });
+      } catch (waitError) {
+        console.log('⚠️ Waiting for page update timed out, continuing...');
+      }
+
+      // Additional wait to ensure database update is complete
+      await page.waitForTimeout(5000);
       console.log('✅ Attributes saved successfully');
+
+      // VERIFICATION STEP: Verify attributes were actually saved
+      console.log('🔍 Verifying attributes were saved properly...');
+      try {
+        // Check if the attribute name field still has our value
+        const savedNameValue = await nameField.inputValue();
+        const savedValueValue = await valueField.inputValue();
+        const isVariationChecked = await variationCheckbox.isChecked();
+
+        console.log(`📋 Saved attribute name: "${savedNameValue}"`);
+        console.log(`📋 Saved attribute values: "${savedValueValue}"`);
+        console.log(`📋 Used for variations: ${isVariationChecked}`);
+
+        if (savedNameValue !== 'color' || savedValueValue !== 'blue|red|yellow' || !isVariationChecked) {
+          throw new Error('Attributes were not saved properly - form fields do not contain expected values');
+        }
+        console.log('✅ Attribute verification passed');
+      } catch (verifyError) {
+        console.log(`⚠️ Attribute verification failed: ${verifyError.message}`);
+        // Try to re-save if verification failed
+        console.log('🔄 Attempting to re-save attributes...');
+        await saveAttributesBtn.click({ force: true });
+        await page.waitForTimeout(8000);
+      }
 
       // STEP 6: Go to Variations tab with robust handling
       console.log('🔄 Step 6: Going to Variations tab...');
@@ -531,6 +571,61 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
       }
       await page.waitForTimeout(3000);
       console.log('✅ Successfully switched to Variations tab');
+
+      // CRITICAL STEP: Wait for the variations tab to load and check for Generate button availability
+      console.log('🔍 Checking if Generate variations button should be available...');
+      await page.waitForTimeout(2000);
+
+      // Check if the message "Add some attributes..." is still present
+      const addAttributesMessage = page.locator('.add-attributes-message');
+      const hasMessage = await addAttributesMessage.isVisible({ timeout: 5000 });
+
+      if (hasMessage) {
+        console.log('⚠️ Still seeing "Add attributes" message - WooCommerce may not have registered the attributes yet');
+
+        // Try refreshing the page to force WooCommerce to reload the attributes
+        console.log('🔄 Refreshing page to reload attributes...');
+        await page.reload({ waitUntil: 'networkidle' });
+
+        // Go back to variations tab after refresh
+        await page.waitForTimeout(3000);
+        await variationsTab.click({ force: true });
+        await page.waitForTimeout(3000);
+
+        // Check again
+        const stillHasMessage = await addAttributesMessage.isVisible({ timeout: 5000 });
+        if (stillHasMessage) {
+          console.log('⚠️ Still seeing message after page refresh. Checking attributes tab again...');
+
+          // Go back to attributes tab and verify our attributes are truly saved
+          await page.locator('li.attribute_tab a[href="#product_attributes"]').click();
+          await page.waitForTimeout(2000);
+
+          const attributeExists = await page.locator('input.attribute_name[value="color"]').isVisible({ timeout: 5000 });
+          if (!attributeExists) {
+            throw new Error('Attributes were not properly saved - color attribute not found in database');
+          }
+
+          console.log('✅ Attribute still exists in form - trying variations tab again...');
+          await variationsTab.click({ force: true });
+          await page.waitForTimeout(3000);
+        }
+      }
+
+      // Final check: Look for generate button or error message
+      const finalMessageCheck = await addAttributesMessage.isVisible({ timeout: 2000 });
+      if (finalMessageCheck) {
+        console.log('❌ Generate variations button will not be available - attributes not properly registered');
+
+        // Get the current variations tab content for debugging
+        const variationsContent = await page.locator('#variable_product_options').innerHTML();
+        console.log('🔍 Current variations tab content:');
+        console.log(variationsContent);
+
+        throw new Error('Generate variations button not available - WooCommerce did not properly register the attributes for variations');
+      } else {
+        console.log('✅ Generate variations button should now be available');
+      }
 
       // STEP 7: Set up dialog listener BEFORE clicking generate variations
       console.log('🔄 Step 7: Setting up dialog listener for confirmation popup...');
