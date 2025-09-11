@@ -425,11 +425,11 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
       // Set product type to variable
       await page.selectOption('#product-type', 'variable');
       console.log('✅ Set product type to variable');
-      
+
       // Wait for the variable product interface to load - this triggers an AJAX call
       console.log('🔄 Waiting for variable product interface to load...');
-      await page.waitForTimeout(3000);
-      
+      await page.waitForTimeout(7000);
+
       // Wait for the attributes tab to become available
       await page.waitForSelector('.product_data_tabs li a[href="#product_attributes"]', { timeout: 30000 });
       console.log('✅ Variable product interface loaded');
@@ -473,11 +473,11 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
         // Try to add attribute using the dropdown - look for all possible options
         const attributeTaxonomy = page.locator('#attribute_taxonomy');
         await attributeTaxonomy.waitFor({ state: 'visible', timeout: 15000 });
-        
+
         // First, let's see what options are available
         const options = await attributeTaxonomy.locator('option').allTextContents();
         console.log('🔍 Available attribute options:', options);
-        
+
         // Try different ways to select custom attribute
         try {
           await attributeTaxonomy.selectOption({ label: 'Custom product attribute' });
@@ -497,23 +497,23 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
         await addAttributeBtn.waitFor({ state: 'visible', timeout: 10000 });
         await addAttributeBtn.click();
         console.log('✅ Clicked add attribute button');
-        
+
         // Wait longer for attribute row to appear as this is often slow
         await page.waitForTimeout(5000);
 
         // Look for attribute fields with multiple selectors
         console.log('🔍 Looking for attribute input fields...');
-        
+
         // First, let's see what attributes interface elements are available
         await page.waitForTimeout(2000);
         const attributeElements = await page.locator('#product_attributes *').count();
         console.log(`🔍 Found ${attributeElements} elements in attributes section`);
-        
+
         // Take a screenshot to debug the attributes interface
         await safeScreenshot(page, 'attributes-interface-debug.png');
-        
+
         let nameField, valueField, variationCheckbox;
-        
+
         // Try multiple selectors for name field
         const nameSelectors = [
           'input[name="attribute_names[0]"]',
@@ -521,7 +521,7 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
           '.woocommerce_attribute input[placeholder*="name" i]',
           '.woocommerce_attribute input[type="text"]'
         ];
-        
+
         for (const selector of nameSelectors) {
           nameField = page.locator(selector).first();
           if (await nameField.isVisible({ timeout: 3000 })) {
@@ -531,7 +531,7 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
             console.log(`❌ Name field not found with selector: ${selector}`);
           }
         }
-        
+
         // Try multiple selectors for value field
         const valueSelectors = [
           'textarea[name="attribute_values[0]"]',
@@ -539,7 +539,7 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
           '.woocommerce_attribute textarea',
           'textarea[placeholder*="value" i]'
         ];
-        
+
         for (const selector of valueSelectors) {
           valueField = page.locator(selector).first();
           if (await valueField.isVisible({ timeout: 3000 })) {
@@ -547,14 +547,14 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
             break;
           }
         }
-        
+
         // Try multiple selectors for variation checkbox
         const checkboxSelectors = [
           'input[name="attribute_variation[0]"]',
           'input[name^="attribute_variation"]',
           '.woocommerce_attribute input[type="checkbox"]'
         ];
-        
+
         for (const selector of checkboxSelectors) {
           variationCheckbox = page.locator(selector).first();
           if (await variationCheckbox.isVisible({ timeout: 3000 })) {
@@ -593,7 +593,7 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
           '.save_attributes',
           'input[name="save_attributes"]'
         ];
-        
+
         let attributesSaved = false;
         for (const selector of saveSelectors) {
           const saveBtn = page.locator(selector);
@@ -604,11 +604,11 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
             break;
           }
         }
-        
+
         if (!attributesSaved) {
           console.log('⚠️ Could not find save attributes button');
         }
-        
+
         await page.waitForTimeout(5000);
         console.log('✅ Attribute save operation completed');
 
@@ -715,10 +715,10 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
 
           await goButton.click();
           console.log('✅ Clicked generate variations button');
-          
+
           // Wait longer for variations to be generated
           await page.waitForTimeout(15000);
-          
+
           // Check if variations were created
           const variations = await page.locator('.woocommerce_variation').count();
           console.log(`🔍 Found ${variations} variations after generation`);

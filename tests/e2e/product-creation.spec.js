@@ -575,15 +575,57 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
         // Take screenshot for debugging
         await safeScreenshot(page, 'generate-variations-button-debug.png');
 
-        // Log what's actually on the page
-        const pageContent = await page.content();
+        // 🚨 HTML DEBUGGING - DUMP THE ENTIRE PAGE HTML
         console.log('🔍 Looking for button-related elements in page...');
+        const pageContent = await page.content();
 
         // Check if the button text exists anywhere
         if (pageContent.includes('Generate variations')) {
           console.log('✅ "Generate variations" text found in page content');
         } else {
           console.log('❌ "Generate variations" text NOT found in page content');
+        }
+
+        // 📄 DUMP ENTIRE HTML FOR DEBUGGING
+        console.log('\n' + '='.repeat(100));
+        console.log('🔍 COMPLETE HTML DUMP FOR DEBUGGING:');
+        console.log('='.repeat(100));
+        console.log(pageContent);
+        console.log('='.repeat(100));
+        console.log('🔍 END OF HTML DUMP');
+        console.log('='.repeat(100) + '\n');
+
+        // 🔍 DUMP SPECIFIC VARIATIONS TAB CONTENT
+        try {
+          const variationsTabContent = await page.locator('#variable_product_options').innerHTML();
+          console.log('\n' + '='.repeat(80));
+          console.log('🔍 VARIATIONS TAB CONTENT:');
+          console.log('='.repeat(80));
+          console.log(variationsTabContent);
+          console.log('='.repeat(80));
+          console.log('🔍 END OF VARIATIONS TAB CONTENT');
+          console.log('='.repeat(80) + '\n');
+        } catch (tabError) {
+          console.log('⚠️ Could not get variations tab content:', tabError.message);
+        }
+
+        // 🔍 DUMP ALL BUTTON ELEMENTS
+        try {
+          const allButtons = await page.locator('button').all();
+          console.log(`\n🔍 FOUND ${allButtons.length} BUTTON ELEMENTS ON PAGE:`);
+          for (let i = 0; i < allButtons.length; i++) {
+            try {
+              const buttonHTML = await allButtons[i].innerHTML();
+              const buttonClasses = await allButtons[i].getAttribute('class');
+              const buttonType = await allButtons[i].getAttribute('type');
+              console.log(`Button ${i+1}: class="${buttonClasses}" type="${buttonType}" innerHTML="${buttonHTML}"`);
+            } catch (buttonError) {
+              console.log(`Button ${i+1}: Could not get details - ${buttonError.message}`);
+            }
+          }
+          console.log('🔍 END OF BUTTON ELEMENTS\n');
+        } catch (buttonListError) {
+          console.log('⚠️ Could not get button list:', buttonListError.message);
         }
 
         // Fallback: try waiting longer with the primary selector
