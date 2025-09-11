@@ -586,14 +586,47 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
           console.log('❌ "Generate variations" text NOT found in page content');
         }
 
-        // 📄 DUMP ENTIRE HTML FOR DEBUGGING
-        console.log('\n' + '='.repeat(100));
-        console.log('🔍 COMPLETE HTML DUMP FOR DEBUGGING:');
-        console.log('='.repeat(100));
-        console.log(pageContent);
-        console.log('='.repeat(100));
-        console.log('🔍 END OF HTML DUMP');
-        console.log('='.repeat(100) + '\n');
+        // 📄 DUMP ONLY RELEVANT PARTS FOR DEBUGGING
+        console.log('\n' + '='.repeat(80));
+        console.log('🔍 SEARCHING FOR GENERATE VARIATIONS BUTTON IN HTML:');
+        console.log('='.repeat(80));
+
+        // Look for button-related HTML snippets
+        const buttonMatches = pageContent.match(/<button[^>]*generate[^>]*>.*?<\/button>/gi);
+        if (buttonMatches) {
+          console.log('Found button elements containing "generate":');
+          buttonMatches.forEach((match, index) => {
+            console.log(`Button ${index + 1}: ${match}`);
+          });
+        } else {
+          console.log('❌ No button elements containing "generate" found');
+        }
+
+        // Look for any element with generate_variations class
+        const generateClassMatches = pageContent.match(/<[^>]*class="[^"]*generate_variations[^"]*"[^>]*>.*?<\/[^>]+>/gi);
+        if (generateClassMatches) {
+          console.log('Found elements with generate_variations class:');
+          generateClassMatches.forEach((match, index) => {
+            console.log(`Element ${index + 1}: ${match}`);
+          });
+        } else {
+          console.log('❌ No elements with generate_variations class found');
+        }
+
+        // Search for "Generate variations" text context
+        const textMatches = pageContent.match(/.{0,100}Generate variations.{0,100}/gi);
+        if (textMatches) {
+          console.log('Found "Generate variations" text context:');
+          textMatches.forEach((match, index) => {
+            console.log(`Context ${index + 1}: ${match}`);
+          });
+        } else {
+          console.log('❌ "Generate variations" text not found in any context');
+        }
+
+        console.log('='.repeat(80));
+        console.log('🔍 END OF TARGETED HTML SEARCH');
+        console.log('='.repeat(80) + '\n');
 
         // 🔍 DUMP SPECIFIC VARIATIONS TAB CONTENT
         try {
