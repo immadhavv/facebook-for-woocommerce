@@ -314,12 +314,12 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
 
       // Dismiss WooCommerce onboarding tour popup if it appears
   const tourDoneBtn = page.locator('button.woocommerce-tour-kit-step-navigation__done-btn');
-  if (await tourDoneBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-    console.log('⚠️ WooCommerce tour popup detected, dismissing...');
-    await tourDoneBtn.click({ force: true });
-    await page.waitForTimeout(1000); // give time for overlay to disappear
+if (await tourDoneBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
+  console.log('⚠️ WooCommerce tour popup detected, dismissing...');
+  await tourDoneBtn.scrollIntoViewIfNeeded();
+  await tourDoneBtn.click({ force: true });
+  await page.waitForTimeout(1000);
 }
-
     // // Handle potential tour popup after selecting variable type
     // await tourHandler();
     // await page.waitForTimeout(3000);
