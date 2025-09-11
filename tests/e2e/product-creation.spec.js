@@ -410,6 +410,8 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
     let productId = null;
     try {
 
+       await loginToWordPress(page);
+
       // Navigate to add new product page
       await page.goto(`${baseURL}/wp-admin/post-new.php?post_type=product`, {
         waitUntil: 'networkidle',
@@ -539,8 +541,22 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
         throw new Error('No variations were generated - attribute setup failed');
       }
 
-      // Publish product
-      await publishProduct(page);
+      // STEP 12: Publish the product
+      console.log('🔄 Step 12: Publishing product...');
+      const publishButton = page.locator('#publish');
+      await publishButton.waitFor({ state: 'visible', timeout: 30000 });
+      await publishButton.click();
+      await page.waitForTimeout(5000);
+      console.log('✅ Product published successfully');
+
+      // Verify no PHP fatal errors
+      const pageContent = await page.content();
+      expect(pageContent).not.toContain('Fatal error');
+      expect(pageContent).not.toContain('Parse error');
+
+      console.log('✅ Variable product creation test completed successfully');
+
+      await page.waitForTimeout(5000);
 
       // Extract product ID from URL after publish
       const currentUrl = page.url();
