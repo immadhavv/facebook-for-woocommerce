@@ -281,7 +281,8 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
   });
 
   test('Create variable product - MINIMAL CLEAN VERSION', async ({ page }) => {
-  try {
+  let productId = null;
+    try {
     await loginToWordPress(page);
 
     // Navigate to add new product
