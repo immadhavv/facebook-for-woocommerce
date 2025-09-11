@@ -270,6 +270,137 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
     await page.setViewportSize({ width: 1280, height: 720 });
     await loginToWordPress(page);
   });
+  test('Create variable product - MINIMAL CLEAN VERSION', async ({ page }) => {
+  try {
+    await loginToWordPress(page);
+
+    // Navigate to add new product
+    await page.goto(`${baseURL}/wp-admin/post-new.php?post_type=product`, {
+      waitUntil: 'networkidle',
+      timeout: 120000
+    });
+
+    // Fill product title
+    await page.waitForSelector('#title', { timeout: 120000 });
+    await page.fill('#title', 'Clean Variable Product Test');
+    console.log('✅ Product title filled');
+
+    // Set up dialog handler for WooCommerce tour popup
+    page.on('dialog', async dialog => {
+      console.log(`📋 Dialog detected: ${dialog.message()}`);
+      await dialog.accept();
+      console.log('✅ Dialog accepted');
+    });
+
+    // Handle WooCommerce tour popup if it appears
+    const tourHandler = async () => {
+      try {
+        const gotItButton = page.locator('button.woocommerce-tour-kit-step-navigation__done-btn.is-primary');
+        if (await gotItButton.isVisible({ timeout: 3000 })) {
+          console.log('📋 WooCommerce tour popup detected');
+          await gotItButton.click();
+          console.log('✅ Tour popup dismissed');
+          await page.waitForTimeout(2000);
+        }
+      } catch (e) {
+        // Tour popup might not appear, continue
+      }
+    };
+
+    // Set product type to variable
+    await page.selectOption('#product-type', 'variable');
+    console.log('✅ Set product type to variable');
+
+    // Handle potential tour popup after selecting variable type
+    await tourHandler();
+    await page.waitForTimeout(3000);
+
+    // Go to Attributes tab
+    console.log('🔄 Going to Attributes tab...');
+    await page.click('li.attribute_tab a[href="#product_attributes"]');
+    await page.waitForTimeout(2000);
+
+    // Add attribute name
+    console.log('🔄 Adding attribute name...');
+    await page.fill('input.attribute_name[name="attribute_names[0]"]', 'Color');
+
+    // Add attribute values
+    console.log('🔄 Adding attribute values...');
+    await page.fill('textarea[name="attribute_values[0]"]', 'Red|Blue|Green');
+    await page.locator('#product_attributes .woocommerce_attribute textarea[name^="attribute_values"]').press('Tab');
+
+
+
+    // Check "Used for variations"
+    console.log('🔄 Enabling for variations...');
+    await page.check('input.woocommerce_attribute_used_for_variations[name="attribute_variation[0]"]');
+
+    // Save attributes
+    console.log('🔄 Saving attributes...');
+    await page.click('button.save_attributes.button-primary');
+    await page.waitForTimeout(5000);
+
+    // Go to Variations tab
+    console.log('🔄 Going to Variations tab...');
+    await page.click('a[href="#variable_product_options"]');
+    await page.waitForTimeout(2000);
+
+    // Generate variations (with popup handler)
+    console.log('🔄 Generating variations...');
+    await page.click('button.generate_variations');
+    await page.waitForTimeout(8000);
+
+    // Verify variations were created
+    const variationsCount = await page.locator('.woocommerce_variation').count();
+    console.log(`✅ Generated ${variationsCount} variations`);
+
+    if (variationsCount > 0) {
+      // STEP: Click "Add price" button first
+      console.log('🔄 Clicking "Add price" button...');
+      const addPriceBtn = page.locator('button.add_price_for_variations');
+      await addPriceBtn.waitFor({ state: 'visible', timeout: 10000 });
+      await addPriceBtn.click();
+      console.log('✅ Clicked "Add price" button');
+
+      // Wait for price input field to appear
+      await page.waitForTimeout(2000);
+
+      // Add bulk price
+      console.log('🔄 Adding bulk price...');
+      const priceInput = page.locator('input.components-text-control__input.wc_input_variations_price');
+      await priceInput.waitFor({ state: 'visible', timeout: 10000 });
+      await priceInput.click();        // ✅ Focus the field
+      await priceInput.clear();        // ✅ Clear existing content
+      await priceInput.type('29.99', { delay: 100 }); // ✅ Type with delays = triggers all JS events
+      console.log('✅ Bulk price typed');
+
+      // Click "Add prices" button to apply the price
+      console.log('🔄 Clicking "Add prices" button...');
+      const addPricesBtn = page.locator('button.add_variations_price_button.button-primary');
+      await addPricesBtn.waitFor({ state: 'visible', timeout: 10000 });
+      await addPricesBtn.click();
+      await page.waitForTimeout(3000);
+      console.log('✅ Bulk price added successfully');
+    }
+
+    // Publish product
+    console.log('🔄 Publishing product...');
+    await page.click('#publish');
+    await page.waitForTimeout(5000);
+
+    // Verify success
+    const pageContent = await page.content();
+    expect(pageContent).not.toContain('Fatal error');
+    expect(pageContent).not.toContain('Parse error');
+
+    console.log('✅ Variable product created successfully!');
+
+  } catch (error) {
+    console.log(`❌ Test failed: ${error.message}`);
+    await page.screenshot({ path: 'clean-test-failure.png', fullPage: true });
+    throw error;
+  }
+});
 
   test('Create simple product with WooCommerce', async ({ page }, testInfo) => {
     let productId = null;
