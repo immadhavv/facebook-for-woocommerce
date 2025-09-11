@@ -572,60 +572,64 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
       await page.waitForTimeout(3000);
       console.log('✅ Successfully switched to Variations tab');
 
-      // CRITICAL STEP: Wait for the variations tab to load and check for Generate button availability
-      console.log('🔍 Checking if Generate variations button should be available...');
-      await page.waitForTimeout(2000);
+      // MANDATORY STEP: Force page refresh to ensure WooCommerce registers the attributes
+      console.log('🔄 MANDATORY: Refreshing page to ensure WooCommerce loads attributes from database...');
+      await page.reload({ waitUntil: 'networkidle' });
+      await page.waitForTimeout(3000);
 
-      // Check if the message "Add some attributes..." is still present
+      // Go back to variations tab after refresh
+      console.log('🔄 Returning to Variations tab after refresh...');
+      const variationsTabAfterRefresh = page.locator('a[href="#variable_product_options"]');
+      await variationsTabAfterRefresh.waitFor({ state: 'visible', timeout: 30000 });
+      await variationsTabAfterRefresh.click({ force: true });
+      await page.waitForTimeout(3000);
+
+      // NOW check if the Generate button is available
+      console.log('🔍 Checking if Generate variations button is now available...');
       const addAttributesMessage = page.locator('.add-attributes-message');
-      const hasMessage = await addAttributesMessage.isVisible({ timeout: 5000 });
+      const hasMessage = await addAttributesMessage.isVisible({ timeout: 3000 });
 
       if (hasMessage) {
-        console.log('⚠️ Still seeing "Add attributes" message - WooCommerce may not have registered the attributes yet');
+        console.log('❌ Still seeing "Add attributes" message after page refresh');
 
-        // Try refreshing the page to force WooCommerce to reload the attributes
-        console.log('🔄 Refreshing page to reload attributes...');
-        await page.reload({ waitUntil: 'networkidle' });
+        // Get debug info about what's in the variations tab
+        const variationsContent = await page.locator('#variable_product_options').innerHTML();
+        console.log('🔍 Variations tab content after refresh:');
+        console.log(variationsContent);
 
-        // Go back to variations tab after refresh
+        // Check if attributes are still saved in the attributes tab
+        console.log('🔍 Double-checking attributes tab after refresh...');
+        await page.locator('li.attribute_tab a[href="#product_attributes"]').click();
+        await page.waitForTimeout(2000);
+
+        // Check all attribute fields
+        const nameValue = await page.locator('input.attribute_name[name="attribute_names[0]"]').inputValue();
+        const valueValue = await page.locator('textarea[name="attribute_values[0]"]').inputValue();
+        const isChecked = await page.locator('input.woocommerce_attribute_used_for_variations[name="attribute_variation[0]"]').isChecked();
+
+        console.log(`📋 After refresh - Name: "${nameValue}", Values: "${valueValue}", Used for variations: ${isChecked}`);
+
+        if (!nameValue || !valueValue || !isChecked) {
+          throw new Error('Attributes were lost after page refresh - WooCommerce database update failed');
+        }
+
+        // Try manual save again
+        console.log('🔄 Attempting to re-save attributes after refresh...');
+        const saveBtn = page.locator('button.save_attributes.button-primary');
+        await saveBtn.click({ force: true });
+        await page.waitForTimeout(8000);
+
+        // Try variations tab one more time
+        await variationsTabAfterRefresh.click({ force: true });
         await page.waitForTimeout(3000);
-        await variationsTab.click({ force: true });
-        await page.waitForTimeout(3000);
 
-        // Check again
-        const stillHasMessage = await addAttributesMessage.isVisible({ timeout: 5000 });
-        if (stillHasMessage) {
-          console.log('⚠️ Still seeing message after page refresh. Checking attributes tab again...');
-
-          // Go back to attributes tab and verify our attributes are truly saved
-          await page.locator('li.attribute_tab a[href="#product_attributes"]').click();
-          await page.waitForTimeout(2000);
-
-          const attributeExists = await page.locator('input.attribute_name[value="color"]').isVisible({ timeout: 5000 });
-          if (!attributeExists) {
-            throw new Error('Attributes were not properly saved - color attribute not found in database');
-          }
-
-          console.log('✅ Attribute still exists in form - trying variations tab again...');
-          await variationsTab.click({ force: true });
-          await page.waitForTimeout(3000);
+        const finalMessageCheck = await addAttributesMessage.isVisible({ timeout: 3000 });
+        if (finalMessageCheck) {
+          throw new Error('Generate variations button still not available after all attempts - this appears to be a WooCommerce configuration or database issue');
         }
       }
 
-      // Final check: Look for generate button or error message
-      const finalMessageCheck = await addAttributesMessage.isVisible({ timeout: 2000 });
-      if (finalMessageCheck) {
-        console.log('❌ Generate variations button will not be available - attributes not properly registered');
-
-        // Get the current variations tab content for debugging
-        const variationsContent = await page.locator('#variable_product_options').innerHTML();
-        console.log('🔍 Current variations tab content:');
-        console.log(variationsContent);
-
-        throw new Error('Generate variations button not available - WooCommerce did not properly register the attributes for variations');
-      } else {
-        console.log('✅ Generate variations button should now be available');
-      }
+      console.log('✅ Generate variations button should now be available after page refresh');
 
       // STEP 7: Set up dialog listener BEFORE clicking generate variations
       console.log('🔄 Step 7: Setting up dialog listener for confirmation popup...');
