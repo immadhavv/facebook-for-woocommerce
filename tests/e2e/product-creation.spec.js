@@ -293,36 +293,19 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
       console.log('✅ Dialog accepted');
     });
 
-    // Handle WooCommerce tour popup if it appears
-    // const tourHandler = async () => {
-    //   try {
-    //     const gotItButton = page.locator('button.woocommerce-tour-kit-step-navigation__done-btn.is-primary');
-    //     if (await gotItButton.isVisible({ timeout: 3000 })) {
-    //       console.log('📋 WooCommerce tour popup detected');
-    //       await gotItButton.click();
-    //       console.log('✅ Tour popup dismissed');
-    //       await page.waitForTimeout(2000);
-    //     }
-    //   } catch (e) {
-    //     // Tour popup might not appear, continue
-    //   }
-    // };
+    await page.evaluate(() => {
+  const el = document.querySelector('.woocommerce-tour-kit');
+  if (el) el.remove();
+});
 
     // Set product type to variable
     await page.selectOption('#product-type', 'variable');
     console.log('✅ Set product type to variable');
 
-      // Dismiss WooCommerce onboarding tour popup if it appears
-  const tourDoneBtn = page.locator('button.woocommerce-tour-kit-step-navigation__done-btn');
-if (await tourDoneBtn.isVisible({ timeout: 5000 }).catch(() => false)) {
-  console.log('⚠️ WooCommerce tour popup detected, dismissing...');
-  await tourDoneBtn.scrollIntoViewIfNeeded();
-  await tourDoneBtn.click({ force: true });
-  await page.waitForTimeout(1000);
-}
-    // // Handle potential tour popup after selecting variable type
-    // await tourHandler();
-    // await page.waitForTimeout(3000);
+      await page.evaluate(() => {
+  const el = document.querySelector('.woocommerce-tour-kit');
+  if (el) el.remove();
+});
 
     // Go to Attributes tab
     console.log('🔄 Going to Attributes tab...');
