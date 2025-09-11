@@ -302,6 +302,10 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
     await page.selectOption('#product-type', 'variable');
     console.log('✅ Set product type to variable');
 
+    // Tell browser to click it directly
+    await page.evaluate(() => document.querySelector('button.woocommerce-tour-kit-step-navigation__done-btn')?.click());
+
+    // Delete the pop up
       await page.evaluate(() => {
   const el = document.querySelector('.woocommerce-tour-kit');
   if (el) el.remove();
