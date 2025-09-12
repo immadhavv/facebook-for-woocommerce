@@ -75,7 +75,6 @@ function generateProductName(productType) {
 
 // Helper function to extract product ID from URL
 function extractProductIdFromUrl(url) {
-  console.log(`🔍 URL for ID extraction: ${url}`);
   const urlMatch = url.match(/post=(\d+)/);
   const productId = urlMatch ? parseInt(urlMatch[1]) : null;
   console.log(`📦 Extracted Product ID: ${productId}`);
@@ -211,24 +210,19 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
     const productName = generateProductName('Variable');
     await page.fill('#title', productName);
 
-    // Set up dialog handler for WooCommerce tour popup
-    page.on('dialog', async dialog => {
-      await dialog.accept();
-      console.log('✅ Dialog accepted');
-    });
+
 
     // Step 3: Set product type to variable
     await page.selectOption('#product-type', 'variable');
     console.log('✅ Set product type to variable');
 
     // Step 4: Tell browser to directly click popup
-    await page.evaluate(() => document.querySelector('button.woocommerce-tour-kit-step-navigation__done-btn')?.click());
-
-    // Delete the pop up
-    //   await page.evaluate(() => {
-    //   const el = document.querySelector('.woocommerce-tour-kit');
-    //   if (el) el.remove();
-    // });
+     // Set up dialog handler for WooCommerce tour popup
+    page.on('dialog', async dialog => {
+      await dialog.accept();
+      console.log('✅ Dialog accepted');
+    });
+    // await page.evaluate(() => document.querySelector('button.woocommerce-tour-kit-step-navigation__done-btn')?.click());
 
     // Step 5: Add attributes
     // Go to Attributes tab
