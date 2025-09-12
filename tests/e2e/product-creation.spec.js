@@ -211,12 +211,11 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
     const productName = generateProductName('Variable');
     await page.fill('#title', productName);
 
-    // // Set up dialog handler for WooCommerce tour popup
-    // page.on('dialog', async dialog => {
-    //   console.log(`📋 Dialog detected: ${dialog.message()}`);
-    //   await dialog.accept();
-    //   console.log('✅ Dialog accepted');
-    // });
+    // Set up dialog handler for WooCommerce tour popup
+    page.on('dialog', async dialog => {
+      await dialog.accept();
+      console.log('✅ Dialog accepted');
+    });
 
     // Step 3: Set product type to variable
     await page.selectOption('#product-type', 'variable');
@@ -241,8 +240,8 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
     // Use tab to enable Save Attributes button
     await page.locator('#product_attributes .woocommerce_attribute textarea[name^="attribute_values"]').press('Tab');
     // Check "Used for variations"
-    console.log('🔄 Enabling for variations...');
-    await page.check('input.woocommerce_attribute_used_for_variations[name="attribute_variation[0]"]');
+    // console.log('🔄 Enabling for variations...');
+    // await page.check('input.woocommerce_attribute_used_for_variations[name="attribute_variation[0]"]');
     // Save attributes
     await page.click('button.save_attributes.button-primary');
     await page.waitForTimeout(5000);
