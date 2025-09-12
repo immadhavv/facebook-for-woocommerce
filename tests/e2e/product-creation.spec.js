@@ -152,26 +152,20 @@ async function validateFacebookSync(productId, productName, waitSeconds = 10) {
       { cwd: __dirname }
     );
 
-    if (stderr) {
-      console.log(`🔧 Debug: PHP stderr: ${stderr}`);
-    }
-
     // 📄 DUMP RAW JSON OUTPUT FROM VALIDATOR
     console.log('\n' + '='.repeat(80));
-    console.log('📄 RAW JSON OUTPUT FROM FACEBOOK SYNC VALIDATOR:');
+    console.log('📄 OUTPUT FROM FACEBOOK SYNC VALIDATOR:');
     console.log('='.repeat(80));
     console.log(stdout);
-    console.log('='.repeat(80));
-    console.log('📄 END OF RAW JSON OUTPUT');
     console.log('='.repeat(80) + '\n');
 
     const result = JSON.parse(stdout);
 
     // Display results
     if (result.success) {
-      console.log(`🎉 Facebook Sync Validation Results for ${displayName}:`);
+      console.log(`🎉 Facebook Sync Validation Succeeded for ${displayName}:`);
     } else {
-      console.log(`❌ Facebook sync validation failed: ${result.error}. Check debug logs above.`);
+      console.log(`❌ Facebook sync validation Failed: ${result.error}. Check debug logs above.`);
     }
 
     return result;
@@ -416,9 +410,6 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
       // Extract product ID from URL after publish
       const currentUrl = page.url();
       productId = extractProductIdFromUrl(currentUrl);
-      if (productId) {
-        console.log(`📦 Product ID: ${productId}`);
-      }
 
       // Verify no PHP fatal errors
       await checkForPhpErrors(page);
