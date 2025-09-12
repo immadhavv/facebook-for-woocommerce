@@ -77,7 +77,7 @@ function generateProductName(productType) {
 function extractProductIdFromUrl(url) {
   const urlMatch = url.match(/post=(\d+)/);
   const productId = urlMatch ? parseInt(urlMatch[1]) : null;
-  console.log(`📦 Extracted Product ID: ${productId}`);
+  console.log(`✅ Extracted Product ID: ${productId}`);
   return productId;
 }
 
@@ -170,7 +170,6 @@ async function validateFacebookSync(productId, productName, waitSeconds = 10) {
     // Display results
     if (result.success) {
       console.log(`🎉 Facebook Sync Validation Results for ${displayName}:`);
-
     } else {
       console.log(`❌ Facebook sync validation failed: ${result.error}. Check debug logs above.`);
     }
@@ -291,11 +290,10 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
     await checkForPhpErrors(page);
 
     // Validate sync to Meta catalog and fields from Meta
-    await validateFacebookSync(productId, "Clean Variable Product Test-E2E");
+    const result = await validateFacebookSync(productId, productName);
+    expect (result.success).toBe(true);
 
     await waitForManualInspection(page);
-    // Intentional test failure to watch video
-    expect(true).toBe(false);
 
     logTestEnd(testInfo, true);
 
@@ -420,7 +418,8 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
       await checkForPhpErrors(page);
 
       // Validate sync to Meta catalog and fields from Meta
-      await validateFacebookSync(productId, productName);
+      const result = await validateFacebookSync(productId, productName);
+      expect (result.success).toBe(true);
 
       console.log('✅ Simple product creation test completed successfully');
       await waitForManualInspection(page);
