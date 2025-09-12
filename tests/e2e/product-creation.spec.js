@@ -210,8 +210,6 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
     const productName = generateProductName('Variable');
     await page.fill('#title', productName);
 
-
-
     // Step 3: Set product type to variable
     await page.selectOption('#product-type', 'variable');
     console.log('✅ Set product type to variable');
@@ -291,9 +289,6 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
     // Extract product ID from URL after publish
     const currentUrl = page.url();
     productId = extractProductIdFromUrl(currentUrl);
-    if (productId) {
-      console.log(`📦 Product ID: ${productId}`);
-    }
 
     // Verify no PHP fatal errors
     await checkForPhpErrors(page);
