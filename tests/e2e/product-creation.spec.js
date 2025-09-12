@@ -106,7 +106,7 @@ async function checkForPhpErrors(page) {
 }
 
 // Helper function to wait for manual inspection
-async function waitForManualInspection(page, seconds = 20) {
+async function waitForManualInspection(page, seconds = 60) {
   console.log(`⏳ Waiting ${seconds} seconds to allow manual catalog inspection...`);
   await page.waitForTimeout(seconds * 1000);
 }

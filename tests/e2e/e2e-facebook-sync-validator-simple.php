@@ -182,7 +182,7 @@ class FacebookSyncValidator {
 
         $woo_data = $this->extractWooCommerceFields($this->product, $retailer_id);
         $this->debug("Extracted WooCommerce data for simple product");
-        $this->debug("WooCommerce data: " . json_encode($woo_data, JSON_PRETTY_PRINT));
+        // $this->debug("WooCommerce data: " . json_encode($woo_data, JSON_PRETTY_PRINT));
 
         // Get Facebook data
         $facebook_data = $this->fetchFacebookData($retailer_id, 'simple');
