@@ -98,6 +98,23 @@ async function publishProduct(page) {
   }
 }
 
+// Helper function to dismiss WooCommerce tour popup
+async function dismissTourPopup(page) {
+  console.log('🔄 DEBUG: Checking for WooCommerce tour popup...');
+  const clicked = await page.evaluate(() => {
+    const button = document.querySelector('button.woocommerce-tour-kit-step-navigation__done-btn');
+    console.log('DEBUG: Button found:', !!button);
+    console.log('DEBUG: Button visible:', button?.offsetParent !== null);
+    if (button?.offsetParent !== null) {
+      button.click();
+      return true;
+    }
+    return false;
+  });
+  console.log(clicked ? '✅ DEBUG: Tour popup dismissed' : 'ℹ️ DEBUG: No tour popup found');
+  return clicked;
+}
+
 // Helper function to check for PHP errors
 async function checkForPhpErrors(page) {
   const pageContent = await page.content();
@@ -219,8 +236,8 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
     await page.selectOption('#product-type', 'variable');
     console.log('✅ Set product type to variable');
 
-    // Step 4: Tell browser to directly click popup
-    await page.evaluate(() => document.querySelector('button.woocommerce-tour-kit-step-navigation__done-btn')?.click());
+    // Step 4: Dismiss WooCommerce tour popup
+    await dismissTourPopup(page);
 
     // Step 5: Add attributes
     // Go to Attributes tab
@@ -303,6 +320,11 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
     await page.screenshot({ path: 'variable-product-test-failure.png', fullPage: true });
     throw error;
   }
+  finally {
+    // Cleanup irrespective of test result
+    if (productId) {
+      await cleanupProduct(productId);
+    }
 });
 
   test('Create simple product with WooCommerce', async ({ page }, testInfo) => {
