@@ -84,9 +84,6 @@ class FacebookSyncValidator {
         $retailer_id = WC_Facebookcommerce_Utils::get_fb_retailer_id($this->product);
         $this->result['debug'][] = "Product retailer ID: {$retailer_id} and type: {$this->product->get_type()}";
 
-        // Debug product object in one line
-        $this->result['debug'][] = "Product object: " . json_encode($this->product);
-
         $this->result['product_type'] = $this->product->get_type();
         $this->result['debug'][] = "Initialized {$this->result['product_type']} product: {$this->product->get_name()}";
     }
