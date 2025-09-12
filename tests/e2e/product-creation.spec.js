@@ -221,7 +221,7 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
     console.log('✅ Set product type to variable');
 
     // Step 4: Tell browser to directly click popup
-    // await page.evaluate(() => document.querySelector('button.woocommerce-tour-kit-step-navigation__done-btn')?.click());
+    await page.evaluate(() => document.querySelector('button.woocommerce-tour-kit-step-navigation__done-btn')?.click());
 
     // Step 5: Add attributes
     // Go to Attributes tab
@@ -232,10 +232,6 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
     await page.fill('textarea[name="attribute_values[0]"]', 'Red|Blue|Green');
     // Use tab to enable Save Attributes button
     await page.locator('#product_attributes .woocommerce_attribute textarea[name^="attribute_values"]').press('Tab');
-    // Check "Used for variations"
-    // console.log('🔄 Enabling for variations...');
-    // await page.check('input.woocommerce_attribute_used_for_variations[name="attribute_variation[0]"]');
-    // Save attributes
     await page.click('button.save_attributes.button-primary');
     await page.waitForTimeout(5000);
     console.log('✅ Saved attributes');
