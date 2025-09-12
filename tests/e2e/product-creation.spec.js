@@ -285,11 +285,9 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
       console.log('✅ Bulk price added successfully');
     }
 
-    // Publish product
-    console.log('🔄 Publishing product...');
+    //  Step 8: Publish product
     await page.click('#publish');
     await page.waitForTimeout(5000);
-
     // Verify success
     const pageContent = await page.content();
     expect(pageContent).not.toContain('Fatal error');

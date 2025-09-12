@@ -13,18 +13,18 @@ export default defineConfig({
     baseURL: process.env.WORDPRESS_URL || 'http://localhost:8080',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
-    video: 'retain-on-failure',
+    video: 'on',
     // Ignore SSL errors for local development
     ignoreHTTPSErrors: true,
     // Global timeouts for all actions - increased to 3 minutes
     actionTimeout: 180000,
     navigationTimeout: 180000,
   },
-  
+
   projects: [
     {
       name: 'chromium',
-      use: { 
+      use: {
         ...devices['Desktop Chrome'],
         // Increased timeouts for WordPress admin operations
         actionTimeout: 180000,
@@ -32,14 +32,14 @@ export default defineConfig({
       },
     },
   ],
-  
+
   // Only look for E2E test files, ignore Jest tests
   testMatch: '**/tests/e2e/**/*.spec.js',
-  
+
   // Only start webServer in CI, not when using external WordPress URL
   webServer: (process.env.CI && !process.env.WORDPRESS_URL) ? {
     command: 'php -S localhost:8080 -t /tmp/wordpress-e2e',
     port: 8080,
     reuseExistingServer: false,
   } : undefined,
-}); 
+});
