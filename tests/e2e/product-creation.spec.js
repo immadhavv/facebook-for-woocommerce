@@ -308,6 +308,7 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
     if (productId) {
       await cleanupProduct(productId);
     }
+  }
 });
 
   test('Create simple product with WooCommerce', async ({ page }, testInfo) => {
