@@ -31,6 +31,30 @@ class FacebookSyncValidator {
     private $integration;
     private $result;
 
+    /**
+     * Field mappings between WooCommerce and Facebook fields
+     */
+    private const FIELD_MAPPINGS = [
+        'title' => 'name',
+        'price' => 'price',
+        'retailer_id' => 'retailer_id',
+        'availability' => 'availability',
+        'description' => 'description',
+        'brand' => 'brand',
+        'condition' => 'condition'
+    ];
+
+    /**
+     * Helper method to add debug messages
+     */
+    private function debug($message) {
+        $this->result['debug'][] = $message;
+    }
+
+
+    /**
+     * Initialize the validator and verify dependencies
+     */
     public function __construct($product_id, $wait_seconds = 5) {
         $this->product_id = (int)$product_id;
         $this->result = [
@@ -49,7 +73,7 @@ class FacebookSyncValidator {
         // Wait for Facebook processing
         if ($wait_seconds > 0) {
             sleep($wait_seconds);
-            $this->result['debug'][] = "Waited {$wait_seconds} seconds before validation";
+            $this->debug("Waited {$wait_seconds} seconds before validation");
         }
 
         $this->validateDependencies();
@@ -57,6 +81,9 @@ class FacebookSyncValidator {
         $this->initializeIntegration();
     }
 
+    /**
+     * Check if required plugins and extensions are available
+     */
     private function validateDependencies() {
         if (!function_exists('wc_get_product')) {
             throw new Exception('WooCommerce not active');
@@ -69,9 +96,11 @@ class FacebookSyncValidator {
         }
     }
 
-    // Initialize product
+    /**
+     * Initialize product
+     */
     private function initializeProduct() {
-        $this->result['debug'][] = "Initializing product: {$this->product_id}";
+        $this->debug("Initializing product: {$this->product_id}");
         $this->product = wc_get_product($this->product_id);
 
         // Fail fast if the product ID doesn't exist in WooCommerce
@@ -81,12 +110,15 @@ class FacebookSyncValidator {
 
         // Get and log retailer ID
         $retailer_id = WC_Facebookcommerce_Utils::get_fb_retailer_id($this->product);
-        $this->result['debug'][] = "Product retailer ID: {$retailer_id} and type: {$this->product->get_type()}";
+        $this->debug("Product retailer ID: {$retailer_id} and type: {$this->product->get_type()}");
 
         $this->result['product_type'] = $this->product->get_type();
-        $this->result['debug'][] = "Initialized {$this->result['product_type']} product: {$this->product->get_name()}";
+        $this->debug("Initialized {$this->result['product_type']} product: {$this->product->get_name()}");
     }
 
+    /**
+     * Set up Facebook API integration and verify configuration
+     */
     private function initializeIntegration() {
         $this->integration = facebook_for_woocommerce()->get_integration();
         if (!$this->integration) {
@@ -95,9 +127,16 @@ class FacebookSyncValidator {
         if (!$this->integration->is_configured()) {
             throw new Exception('Facebook integration not configured');
         }
-        $this->result['debug'][] = 'Facebook integration initialized and configured';
+        $this->debug('Facebook integration initialized and configured');
     }
 
+    /**
+     * Main validation method - validates sync between WooCommerce and Facebook
+     * 1. Get both platform data (WooCommerce + Facebook)
+     * 2. Check sync status using fetched Facebook data
+     * 3. Compare fields between platforms
+     * 4. Set success based on sync status and no mismatches
+     */
     public function validate() {
         try {
             $actual_type = $this->product->get_type();
@@ -115,7 +154,7 @@ class FacebookSyncValidator {
             $this->result['success'] = ($this->result['sync_status'] === 'synced' && count($this->result['mismatches']) === 0);
         } catch (Exception $e) {
             $this->result['error'] = $e->getMessage();
-            $this->result['debug'][] = "Validation failed: " . $e->getMessage();
+            $this->debug("Validation failed: " . $e->getMessage());
         }
         return $this->result;
     }
@@ -124,7 +163,7 @@ class FacebookSyncValidator {
      * Get both WooCommerce and Facebook data for any product type
      */
     private function getBothPlatformData($product_type) {
-        $this->result['debug'][] = "Fetching both platform data for {$product_type} product";
+        $this->debug("Fetching both platform data for {$product_type} product");
 
         if ($product_type === 'variable') {
             return $this->getVariableProductData();
@@ -142,8 +181,8 @@ class FacebookSyncValidator {
         $this->result['retailer_id'] = $retailer_id;
 
         $woo_data = $this->extractWooCommerceFields($this->product, $retailer_id);
-        $this->result['debug'][] = "Extracted WooCommerce data for simple product";
-        // $this->result['debug'][] = "WooCommerce data: " . json_encode($woo_data, JSON_PRETTY_PRINT);
+        $this->debug("Extracted WooCommerce data for simple product");
+        $this->debug("WooCommerce data: " . json_encode($woo_data, JSON_PRETTY_PRINT));
 
         // Get Facebook data
         $facebook_data = $this->fetchFacebookData($retailer_id, 'simple');
@@ -168,26 +207,20 @@ class FacebookSyncValidator {
 
         // All variations
         $variations = $this->product->get_children();
-        $this->result['debug'][] = "Processing " . count($variations) . " variations: [" . implode(', ', $variations) . "]";
-        $this->result['debug'][] = "Parent product ID: " . $this->product->get_id() . " (should not be in variations list above)";
+        $this->debug("Processing " . count($variations) . " variations: [" . implode(', ', $variations) . "]");
 
         foreach ($variations as $variation_id) {
             $variation = wc_get_product($variation_id);
-            if (!$variation) {
-                $failed_variations[] = $variation_id;
-                $this->result['debug'][] = "Variation {$variation_id} not found in WooCommerce";
-                continue;
-            }
 
             try {
                 $var_retailer_id = WC_Facebookcommerce_Utils::get_fb_retailer_id($variation);
                 $woo_data_array[] = $this->extractWooCommerceFields($variation, $var_retailer_id);
                 $facebook_data_array[] = $this->fetchFacebookData($var_retailer_id, 'variable');
 
-                $this->result['debug'][] = "Extracted variation {$variation_id} data successfully";
+                $this->debug("Extracted variation {$variation_id} data successfully");
             } catch (Exception $e) {
                 $failed_variations[] = $variation_id;
-                $this->result['debug'][] = "Variation {$variation_id} data extraction failed: " . $e->getMessage();
+                $this->debug("Variation {$variation_id} data extraction failed: " . $e->getMessage());
             }
         }
 
@@ -202,7 +235,7 @@ class FacebookSyncValidator {
         ];
 
         if (count($failed_variations) > 0) {
-            $this->result['debug'][] = "Failed to process variations: " . implode(', ', $failed_variations);
+            $this->debug("Failed to process variations: " . implode(', ', $failed_variations));
         }
 
         return [
@@ -249,11 +282,11 @@ class FacebookSyncValidator {
             $response = $api->get_product_facebook_fields($catalog_id, $retailer_id, $fields);
 
             // Log the full API response for debugging
-            $this->result['debug'][] = "Facebook API response for {$retailer_id}: " . json_encode($response, JSON_PRETTY_PRINT);
+            // $this->debug("Facebook API response for {$retailer_id}: " . json_encode($response, JSON_PRETTY_PRINT));
 
             if ($response && $response->response_data && isset($response->response_data['data'][0])) {
                 $fb_data = $response->response_data['data'][0];
-                $this->result['debug'][] = "Successfully fetched Facebook data for {$retailer_id}";
+                $this->debug("Successfully fetched Facebook data for {$retailer_id}");
 
                 return [
                     'id' => $fb_data['id'] ?? null,
@@ -271,77 +304,65 @@ class FacebookSyncValidator {
                 ];
 
             } else {
-                $this->result['debug'][] = "No Facebook data found for retailer_id: {$retailer_id}";
+                $this->debug("No Facebook data found for retailer_id: {$retailer_id}");
                 return ['found' => false];
             }
 
         } catch (Exception $e) {
-            $this->result['debug'][] = "Facebook API error for {$retailer_id}: " . $e->getMessage();
+            $this->debug("Facebook API error for {$retailer_id}: " . $e->getMessage());
             return ['found' => false, 'error' => $e->getMessage()];
         }
     }
 
     /**
-     *  Check sync status for any product type
+     * Check if products are synced to Facebook (unified for both simple and variable)
      */
     private function checkSyncStatus($data) {
-        if ($data['type'] === 'variable') {
-            // For variable products, check if all variations are synced
-            $total_variations = count($data['woo_data']);
-            $synced_variations = array_filter($data['facebook_data'], function($fb_data) {
-                return $fb_data['found'] ?? false;
-            });
-            $synced_count = count($synced_variations);
+        $total_product_count = count($data['woo_data']);
+        $synced_products = array_filter($data['facebook_data'], function($fb_data) {
+            return $fb_data['found'] ?? false;
+        });
+        $synced_count = count($synced_products);
 
-            // Check if all variations have the same product group ID
-            $product_group_ids = array_unique(array_filter(array_map(function($fb_data) {
-                return $fb_data['product_group_id'] ?? null;
-            }, $synced_variations)));
+        // Get unique product group IDs from synced products
+        $product_group_ids = array_unique(array_filter(array_map(function($fb_data) {
+            return $fb_data['product_group_id'] ?? null;
+        }, $synced_products)));
 
-            // Variable product is synced if:
-            // 1. ALL variations exist in Facebook
-            // 2. All variations belong to the same product group
-            if ($total_variations > 0 && $synced_count === $total_variations && count($product_group_ids) === 1) {
-                $this->result['sync_status'] = 'synced';
-                $this->result['facebook_id'] = reset($product_group_ids); // Use the common group ID
-                $this->result['debug'][] = "Variable product fully synced - all {$total_variations} variations found in Facebook with same product group: " . $this->result['facebook_id'];
-            } else {
-                $this->result['sync_status'] = 'not_synced';
+        // Synced if:
+        // 1. ALL products/variations exist in Facebook
+        // 2. All products/variations belong to the same product group
+        if ($total_product_count > 0 && $synced_count === $total_product_count && count($product_group_ids) === 1) {
+            $this->result['sync_status'] = 'synced';
+            $this->result['facebook_id'] = reset($product_group_ids); // Use the common group ID
+            $this->debug("{$data['type']} Product {$this->result['retailer_id']} is fully synced with Facebook product group: {$this->result['facebook_id']}");
 
-                if ($synced_count < $total_variations) {
-                    // Find missing variations using consistent id field
-                    $missing_variations = [];
-                    for ($i = 0; $i < $total_variations; $i++) {
-                        if (!($data['facebook_data'][$i]['found'] ?? false)) {
-                            // cos we can't just loop on $data['facebook_data'] as it does not have retailer_id during failure fetches
-                            $variation_id = $data['woo_data'][$i]['id'] ?? "unknown_{$i}";
-                            $retailer_id = $data['woo_data'][$i]['retailer_id'] ?? "unknown_retailer_{$i}";
-                            $missing_variations[] = "ID:{$variation_id} (retailer:{$retailer_id})";
-                        }
-                    }
-
-                    $this->result['debug'][] = "Variable product not fully synced - only {$synced_count}/{$total_variations} variations found in Facebook";
-                    $this->result['debug'][] = "Missing variations from Facebook: " . implode(', ', $missing_variations);
-                } elseif (count($product_group_ids) > 1) {
-                    $this->result['debug'][] = "Variable product not synced - variations belong to different product groups: " . implode(', ', $product_group_ids);
-                }
-            }
         } else {
-            // For simple products
-            $facebook_data = $data['facebook_data'][0] ?? [];
-            if ($facebook_data['found'] ?? false) {
-                $this->result['sync_status'] = 'synced';
-                $this->result['facebook_id'] = $facebook_data['id'] ?? null;
-                $this->result['debug'][] = "Simple product is synced with Facebook ID: " . ($this->result['facebook_id'] ?? 'unknown');
-            } else {
-                $this->result['sync_status'] = 'not_synced';
-                $this->result['debug'][] = "Simple product is not synced to Facebook";
+            $this->result['sync_status'] = 'not_synced';
+
+            if ($synced_count < $total_product_count) {
+                // Find missing products/variations
+                $missing_items = [];
+                for ($i = 0; $i < $total_product_count; $i++) {
+                    if (!($data['facebook_data'][$i]['found'] ?? false)) {
+                        // cos we can't just loop on $data['facebook_data'] as it does not have retailer_id during failure fetches
+                        $product_id = $data['woo_data'][$i]['id'] ?? "unknown_{$i}";
+                        $retailer_id = $data['woo_data'][$i]['retailer_id'] ?? "unknown_retailer_{$i}";
+                        $missing_items[] = "ID:{$product_id} (retailer:{$retailer_id})";
+                    }
+                }
+
+                $this->debug("Products/variations not synced to Facebook: " . implode(', ', $missing_items));
+
+            } elseif (count($product_group_ids) > 1) {
+                $product_type = $data['type'] === 'variable' ? 'variations' : 'product';
+                $this->debug("{$data['type']} product not synced - {$product_type} belong to different product groups: " . implode(', ', $product_group_ids));
             }
         }
     }
 
     /**
-     * Compare fields for any product type
+     * Compare fields between WooCommerce and Facebook for all products
      */
     private function compareFields($data) {
         $mismatches = [];
@@ -354,7 +375,7 @@ class FacebookSyncValidator {
 
             if (!($facebook_data['found'] ?? false)) {
                 continue; // Skip products not found in Facebook
-                // TODO should we log these as mismatches or is it already being done?
+                // these are logged in checkSyncStatus as missing variations
             }
 
             $compared_products++;
@@ -370,35 +391,21 @@ class FacebookSyncValidator {
 
             if (count($product_mismatches) > 0) {
                 $mismatches = array_merge($mismatches, $product_mismatches);
-
-                if ($data['type'] === 'variable') {
-                    $this->result['debug'][] = "Field mismatches found for variation {$product_id}";
-                } else {
-                    $this->result['debug'][] = "Field mismatches found for product {$product_id}";
-                }
+                $this->debug("Found mismatches for product/variation -  {$product_id}");
             }
         }
 
         $this->result['mismatches'] = $mismatches;
-        $this->result['debug'][] = "Compared fields for {$compared_products} products, found " . count($mismatches) . " total mismatches";
+        $this->debug("Compared fields for {$compared_products} products, found " . count($mismatches) . " total mismatches");
     }
 
     /**
      * Compare fields for a single product
      */
     private function compareProductFields($woo_data, $facebook_data, $product_id) {
-        $fields_to_check = [
-            'title' => 'name',
-            'price' => 'price',
-            'retailer_id' => 'retailer_id',
-            'availability' => 'availability',
-            'description' => 'description',
-            'brand' => 'brand',
-            'condition' => 'condition'
-        ];
         $mismatches = [];
 
-        foreach ($fields_to_check as $woo_field => $fb_field) {
+        foreach (self::FIELD_MAPPINGS as $woo_field => $fb_field) {
             $woo_value = $woo_data[$woo_field] ?? '';
             $fb_value = $facebook_data[$fb_field] ?? '';
 
@@ -406,7 +413,7 @@ class FacebookSyncValidator {
             $normalized_fb = $this->normalizeValue($fb_value, $woo_field);
 
             if ($normalized_woo !== $normalized_fb) {
-                $this->result['debug'][] = "MISMATCH {$woo_field}: WooCommerce='{$woo_value}' (normalized='{$normalized_woo}') vs Facebook='{$fb_value}' (normalized='{$normalized_fb}')";
+                $this->debug("MISMATCH {$woo_field}: WooCommerce='{$woo_value}' (normalized='{$normalized_woo}') vs Facebook='{$fb_value}' (normalized='{$normalized_fb}')");
 
                 $mismatches["{$product_id}_{$woo_field}"] = [
                     'product_id' => $product_id,
@@ -450,37 +457,14 @@ class FacebookSyncValidator {
      * "19.99 USD" -> "19.99"
      */
     private function normalizePrice($price) {
-        if (empty($price)) {
-            return '';
-        }
+        if (empty($price)) return '';
 
-        // Convert to string if it's not already
-        $price = (string)$price;
+        // Remove currency symbols and codes
+        $price = preg_replace('/[^\d.,]/', '', (string)$price);
+        $price = preg_replace('/,(?=\d{3,})/', '', $price); // Remove thousands separators
+        $price = str_replace(',', '.', $price); // Convert comma decimals
 
-        // Remove common currency symbols
-        $price = preg_replace('/[£$€¥₹₽¢]/u', '', $price);
-
-        // Remove currency codes (USD, GBP, EUR, etc.)
-        $price = preg_replace('/\b(usd|gbp|eur|jpy|aud|cad|chf|cny|inr|rub|brl|krw|sgd|hkd|nok|sek|dkk|pln|czk|huf|ils|php|thb|myr|idr|vnd|zar|try|mxn|nzd|aed|sar)\b/i', '', $price);
-
-        // Remove extra whitespace and non-numeric characters except dots and commas
-        $price = preg_replace('/[^\d.,]/', '', trim($price));
-
-        // Handle different decimal separators (convert comma to dot for standardization)
-        if (preg_match('/,\d{1,2}$/', $price)) {
-            // Comma as decimal separator (e.g., "1234,56")
-            $price = str_replace(',', '.', $price);
-        } else {
-            // Remove thousands separators (commas) but keep decimal dots
-            $price = str_replace(',', '', $price);
-        }
-
-        // Convert to float and back to ensure consistent decimal places
-        if (is_numeric($price)) {
-            return number_format((float)$price, 2, '.', '');
-        }
-
-        return $price;
+        return is_numeric($price) ? number_format((float)$price, 2, '.', '') : $price;
     }
 
     public function getJsonResult() {
