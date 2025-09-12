@@ -13,7 +13,7 @@ export default defineConfig({
     baseURL: process.env.WORDPRESS_URL || 'http://localhost:8080',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
-    video: 'on',
+    video: 'retain-on-failure',
     // Ignore SSL errors for local development
     ignoreHTTPSErrors: true,
     // Global timeouts for all actions - increased to 3 minutes

@@ -241,8 +241,8 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
     // Use tab to enable Save Attributes button
     await page.locator('#product_attributes .woocommerce_attribute textarea[name^="attribute_values"]').press('Tab');
     // Check "Used for variations"
-    // console.log('🔄 Enabling for variations...');
-    // await page.check('input.woocommerce_attribute_used_for_variations[name="attribute_variation[0]"]');
+    console.log('🔄 Enabling for variations...');
+    await page.check('input.woocommerce_attribute_used_for_variations[name="attribute_variation[0]"]');
     // Save attributes
     await page.click('button.save_attributes.button-primary');
     await page.waitForTimeout(5000);
@@ -309,6 +309,8 @@ test.describe('Facebook for WooCommerce - Product Creation E2E Tests', () => {
     await validateFacebookSync(productId, "Clean Variable Product Test-E2E");
 
     await waitForManualInspection(page);
+    // Intentional test failure to watch video
+    expect(true).toBe(false);
 
     logTestEnd(testInfo, true);
 
