@@ -153,11 +153,8 @@ async function validateFacebookSync(productId, productName, waitSeconds = 10) {
     );
 
     // 📄 DUMP RAW JSON OUTPUT FROM VALIDATOR
-    console.log('\n' + '='.repeat(80));
     console.log('📄 OUTPUT FROM FACEBOOK SYNC VALIDATOR:');
-    console.log('='.repeat(80));
     console.log(stdout);
-    console.log('='.repeat(80) + '\n');
 
     const result = JSON.parse(stdout);
 

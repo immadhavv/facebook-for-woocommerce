@@ -143,7 +143,7 @@ class FacebookSyncValidator {
 
         $woo_data = $this->extractWooCommerceFields($this->product, $retailer_id);
         $this->result['debug'][] = "Extracted WooCommerce data for simple product";
-        $this->result['debug'][] = "WooCommerce data: " . json_encode($woo_data, JSON_PRETTY_PRINT);
+        // $this->result['debug'][] = "WooCommerce data: " . json_encode($woo_data, JSON_PRETTY_PRINT);
 
         // Get Facebook data
         $facebook_data = $this->fetchFacebookData($retailer_id, 'simple');
@@ -266,7 +266,7 @@ class FacebookSyncValidator {
                     'brand' => $fb_data['brand'] ?? '',
                     'color' => $fb_data['color'] ?? '',
                     'size' => $fb_data['size'] ?? '',
-                    'product_group_id' => $context === 'variable' ? $fb_data['product_group']['id'] : null, // TODO Or use retailed ID itself instead of null for simple products??
+                    'product_group_id' => $fb_data['product_group']['id'] , //Simple products also have some product_group id
                     'found' => true
                 ];
 
