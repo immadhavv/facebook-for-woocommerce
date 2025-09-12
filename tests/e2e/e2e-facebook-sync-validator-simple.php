@@ -1,16 +1,15 @@
 <?php
 /**
- *  E2E Facebook Sync Validator - Unified for Simple & Variable Products
+ *  E2E Facebook Sync Validator - For Simple & Variable Products
  *
  * Validates product sync between WooCommerce and Facebook with comprehensive debugging
  * Follows same flow pattern for both product types: getData -> checkSync -> compareFields
  *
- * Usage: php e2e-facebook-sync-validator-simple.php <product_id> [wait_seconds] [product_type]
+ * Usage: php e2e-facebook-sync-validator-simple.php <product_id> [wait_seconds]
  */
 
 // Bootstrap WordPress
 $wp_path = '/tmp/wordpress/wp-load.php';
-// $wp_path = '/Users/nmadhav/Local Sites/wooc-auto-mbe-site/app/public/wp-load.php';
 
 if (!file_exists($wp_path)) {
     echo json_encode([
@@ -32,7 +31,7 @@ class FacebookSyncValidator {
     private $integration;
     private $result;
 
-    public function __construct($product_id, $wait_seconds = 10) {
+    public function __construct($product_id, $wait_seconds = 5) {
         $this->product_id = (int)$product_id;
         $this->result = [
             'success' => false,
@@ -248,6 +247,9 @@ class FacebookSyncValidator {
             // Use get_product_facebook_fields with full fields string
             $fields = 'id,name,price,description,availability,retailer_id,condition,brand,color,size,product_group{id}';
             $response = $api->get_product_facebook_fields($catalog_id, $retailer_id, $fields);
+
+            // Log the full API response for debugging
+            $this->result['debug'][] = "Facebook API response for {$retailer_id}: " . json_encode($response, JSON_PRETTY_PRINT);
 
             if ($response && $response->response_data && isset($response->response_data['data'][0])) {
                 $fb_data = $response->response_data['data'][0];
