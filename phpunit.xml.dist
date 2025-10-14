@@ -19,70 +19,33 @@
 	</testsuites>
 	<coverage>
 		<exclude>
-			<!-- System directories -->
+			<!-- Non critical: System directories -->
 			<directory>bin</directory>
 			<directory>data</directory>
 			<directory>tests</directory>
 
-			<!-- Non-critical: Logging and debugging -->
+			<!-- Non critical: Observability only - failures don't break functionality -->
 			<directory>includes/Logger</directory>
+
+			<!-- Non critical: Developer tools only - not used by end users -->
 			<directory>includes/Debug</directory>
 
-			<!-- Non-critical: Feed generation (secondary features not in core flows) -->
-			<directory>includes/Feed/NavigationMenu</directory>
-			<directory>includes/Feed/Promotions</directory>
-			<directory>includes/Feed/RatingsAndReviews</directory>
-			<directory>includes/Feed/ShippingProfiles</directory>
-
-			<!-- Non-critical: External version updates (infrastructure) -->
-			<directory>includes/ExternalVersionUpdate</directory>
-
-			<!-- Non-critical: Signed data handling (infrastructure) -->
-			<directory>includes/FBSignedData</directory>
-
-			<!-- Non-critical: Offer management (not in QA manual tests) -->
+			<!-- Non critical: Manages coupons/promotions - failures don't break functionality -->
 			<directory>includes/OfferManagement</directory>
 
-			<!-- Non-critical: Rollout switches (configuration) -->
-			<file>includes/RolloutSwitches.php</file>
+			<!-- Non critical: Meta just won't know the plugin version, functionality would still work -->
+			<directory>includes/ExternalVersionUpdate</directory>
 
-			<!-- Non-critical: Locale handling (utility) -->
-			<file>includes/Locale.php</file>
-
-			<!-- Non-critical: Admin UI components (not in critical purchase/sync flows) -->
+			<!-- Non critical: Admin notification banners - UI only, no impact on sync/events -->
 			<directory>includes/Admin/Notes</directory>
-			<directory>includes/Admin/Tasks</directory>
-			<file>includes/Admin/Enhanced_Catalog_Attribute_Fields.php</file>
 			<file>includes/Admin/Global_Attributes_Banner.php</file>
 
-			<!-- Non-critical: Specific API endpoints for advanced features -->
-			<directory>includes/API/PublicKeyGet</directory>
+			<!-- Non critical: Meta internal logging - observability for Meta, not functionality -->
 			<directory>includes/API/MetaLog</directory>
-			<directory>includes/API/Pages</directory>
-			<directory>includes/API/User</directory>
-			<directory>includes/API/FBE/RolloutSwitches</directory>
 
-			<!-- Non-critical: Integrations with third-party plugins (bookings) -->
-			<directory>includes/Integrations</directory>
-
-			<!-- Non-critical: Background jobs infrastructure -->
-			<file>includes/Jobs/AbstractChainedJob.php</file>
-			<file>includes/Jobs/LoggingTrait.php</file>
-			<file>includes/Jobs/ResetAllProductsFBSettings.php</file>
-
-			<!-- Non-critical: Legacy/deprecated files -->
-			<file>includes/fbbackground.php</file>
-			<file>includes/fbcollection.php</file>
-			<file>includes/fbwpml.php</file>
-
-			<!-- Non-critical: Utility files (general helpers) -->
-			<directory>includes/Utilities</directory>
-
-			<!-- Non-critical: Banner and notice files -->
+			<!-- Non critical: Banner/notice root files - UI notifications only -->
 			<file>./facebook-commerce-admin-banner.php</file>
 			<file>./facebook-commerce-admin-notice.php</file>
-			<file>./facebook-commerce-iframe-whatsapp-utility-event.php</file>
-			<file>./facebook-commerce-whatsapp-utility-event.php</file>
 		</exclude>
 	</coverage>
 </phpunit>
