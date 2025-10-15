@@ -18,8 +18,11 @@
 		</testsuite>
 	</testsuites>
 	<coverage>
+		<include>
+			<directory suffix=".php">.</directory>
+		</include>
 		<exclude>
-			<!-- Non critical: System directories -->
+			<!-- System directories -->
 			<directory>bin</directory>
 			<directory>data</directory>
 			<directory>tests</directory>
