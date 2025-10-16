@@ -202,7 +202,7 @@ jobs:
                 'External Business ID' => !empty(\$conn->get_external_business_id()),
                 'Business Manager ID' => !empty(\$conn->get_business_manager_id()),
                 'Catalog ID' => !empty(\$integration->get_product_catalog_id()),
-                'Page ID' => !empty($integration->get_facebook_page_id()),
+                'Page ID' => !empty(\$integration->get_facebook_page_id()),
             ];
 
             \$missing = array_keys(array_filter(\$required, fn(\$v) => !\$v));
