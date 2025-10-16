@@ -187,17 +187,37 @@ jobs:
       - name: Verify Facebook for WooCommerce setup
         run: |
           cd /tmp/wordpress
-          echo "=== Facebook for WooCommerce Info ==="
           wp eval "
-            if (function_exists('facebook_for_woocommerce')) {
-                \$connection = facebook_for_woocommerce()->get_connection_handler();
-                echo 'Connected: ' . (\$connection->is_connected() ? 'YES' : 'NO') . PHP_EOL;
-                echo 'Access Token: ' . (\$connection->get_access_token() ? 'Present' : 'Missing') . PHP_EOL;
-                echo 'External Business ID: ' . \$connection->get_external_business_id() . PHP_EOL;
-                echo 'Business Manager ID: ' . \$connection->get_business_manager_id() . PHP_EOL;
-            } else {
-                echo 'Facebook plugin not loaded properly';
-            }" --allow-root
+            if (!function_exists('facebook_for_woocommerce')) {
+                echo '❌ Facebook for WooCommerce plugin not loaded!' . PHP_EOL;
+                exit(1);
+            }
+
+            \$conn = facebook_for_woocommerce()->get_connection_handler();
+            \$integration = facebook_for_woocommerce()->get_integration();
+
+            \$required = [
+                'Connection' => \$conn->is_connected(),
+                'Access Token' => !empty(\$conn->get_access_token()),
+                'External Business ID' => !empty(\$conn->get_external_business_id()),
+                'Business Manager ID' => !empty(\$conn->get_business_manager_id()),
+                'Catalog ID' => !empty(\$integration->get_product_catalog_id()),
+                'Page ID' => !empty($integration->get_facebook_page_id()),
+            ];
+
+            \$missing = array_keys(array_filter(\$required, fn(\$v) => !\$v));
+
+            if (\$missing) {
+                echo PHP_EOL . '❌ Test Setup validation failed!' . PHP_EOL;
+                echo 'Missing fields: ' . implode(', ', \$missing) . PHP_EOL . PHP_EOL;
+                echo '💡 Note: If running on a fork or forked PR, this may fail due to missing secrets or missing access' . PHP_EOL .
+                     ' to the secrets respectively. Consider creating a PR from a local branch instead.' . PHP_EOL;
+                exit(1);
+            }
+
+            echo '✅ Setup validated' . PHP_EOL;
+
+          " --allow-root
 
       - name: Install Playwright
         run: |
