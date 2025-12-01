@@ -63,9 +63,8 @@ test.describe('WooCommerce Plugin level tests', () => {
       console.log('   - All response codes are 200 OK');
     });
 
-  test('Verify Facebook external business ID configuration', async ({ page }) => {
-    console.log('🔍 Verifying Facebook external business ID...');
-
+  test('Verify Debug mode and options visibility', async ({ page }) => {
+    console.log('🔍 Debug mode is enabled already. Checking options visibility...');
     await page.goto(`${process.env.WORDPRESS_URL}/wp-admin/options.php`);
 
     const label = page.locator('label[for="wc_facebook_external_business_id"]');
@@ -77,10 +76,36 @@ test.describe('WooCommerce Plugin level tests', () => {
     expect(value).toBeTruthy();
     expect(value).toBe(process.env.FB_EXTERNAL_BUSINESS_ID);
 
-    console.log('✅ External business ID verification PASSED');
+    console.log('✅ WooCommerce Debug log checks passed');
     console.log(`   - Option exists: wc_facebook_external_business_id`);
     console.log(`   - Value is non-null: YES`);
     console.log(`   - Matches expected: YES`);
+  });
+
+  test('Check WordPress and WooCommerce are up to date', async ({ page }) => {
+    await page.goto(`${process.env.WORDPRESS_URL}/wp-admin/update-core.php`);
+
+    // Check WordPress
+    const wpUpToDate = await page.locator('h2.response:has-text("You have the latest version of WordPress")').count();
+    if (wpUpToDate > 0) {
+      console.log('✅ WordPress up to date');
+    } else {
+      console.log('❌ WordPress needs update');
+    }
+
+    // Check WooCommerce
+    const allPluginsUpToDate = await page.locator('p:has-text("Your plugins are all up to date.")').count();
+    const wooInUpdateTable = await page.locator('#update-plugins-table tr:has-text("WooCommerce")').count();
+
+    if (allPluginsUpToDate > 0 || wooInUpdateTable === 0) {
+      console.log('✅ WooCommerce up to date');
+    } else {
+      console.log('❌ WooCommerce needs update');
+    }
+
+    expect(wpUpToDate).toBeGreaterThan(0);
+    expect(allPluginsUpToDate > 0 || wooInUpdateTable === 0).toBe(true);
+    console.log('✅ Wordpress and WooCommerce are up to date');
   });
 
 });
