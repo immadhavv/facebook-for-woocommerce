@@ -19,7 +19,7 @@ test.describe('WooCommerce Plugin level tests', () => {
 
     const today = new Date().toISOString().split('T')[0];
 
-    const logsDir = process.env(LOG_PATH)  || '../../../wp-content/uploads/wc-logs';
+    const logsDir = process.env.LOG_PATH || '../../../wp-content/uploads/wc-logs';
 
     // Find today's log file
     const logFile = execSync(
@@ -65,18 +65,18 @@ test.describe('WooCommerce Plugin level tests', () => {
 
   test('Verify Facebook external business ID configuration', async ({ page }) => {
     console.log('🔍 Verifying Facebook external business ID...');
-    
+
     await page.goto(`${process.env.WORDPRESS_URL}/wp-admin/options.php`);
-    
+
     const label = page.locator('label[for="wc_facebook_external_business_id"]');
     await expect(label).toBeVisible();
-    
+
     const input = page.locator('#wc_facebook_external_business_id');
     const value = await input.inputValue();
-    
+
     expect(value).toBeTruthy();
     expect(value).toBe(process.env.FB_EXTERNAL_BUSINESS_ID);
-    
+
     console.log('✅ External business ID verification PASSED');
     console.log(`   - Option exists: wc_facebook_external_business_id`);
     console.log(`   - Value is non-null: YES`);
