@@ -21,6 +21,7 @@ on:
 
 env:
   LOG_PATH: /tmp/wordpress/wp-content/uploads/wc-logs
+  WORDPRESS_PATH: /tmp/wordpress
 jobs:
   e2e-tests:
     runs-on: ubuntu-latest
