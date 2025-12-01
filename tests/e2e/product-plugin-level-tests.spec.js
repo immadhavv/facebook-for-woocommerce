@@ -1,7 +1,18 @@
 const { test, expect } = require('@playwright/test');
 const { execSync } = require('child_process');
 
-test.describe('WooCommerce Facebook Logs Validation', () => {
+const {loginToWordPress,logTestStart} = require('./test-helpers');
+
+test.describe('WooCommerce Plugin level tests', () => {
+
+  test.beforeEach(async ({ page }, testInfo) => {
+    // Log test start first for proper chronological order
+    logTestStart(testInfo);
+
+    // Ensure browser stability
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await loginToWordPress(page);
+  });
 
   test('Check WooCommerce logs for fatal errors and non-200 responses', async () => {
     console.log('🔍 Checking WooCommerce logs for errors...');
@@ -47,9 +58,29 @@ test.describe('WooCommerce Facebook Logs Validation', () => {
       throw new Error('Log validation failed');
     }
 
-    console.log('✅ Log validation PASSED');
-    console.log('   - No fatal errors');
-    console.log('   - All response codes are 200 OK');
+      console.log('✅ Log validation PASSED');
+      console.log('   - No fatal errors');
+      console.log('   - All response codes are 200 OK');
+    });
+
+  test('Verify Facebook external business ID configuration', async ({ page }) => {
+    console.log('🔍 Verifying Facebook external business ID...');
+    
+    await page.goto(`${process.env.WORDPRESS_URL}/wp-admin/options.php`);
+    
+    const label = page.locator('label[for="wc_facebook_external_business_id"]');
+    await expect(label).toBeVisible();
+    
+    const input = page.locator('#wc_facebook_external_business_id');
+    const value = await input.inputValue();
+    
+    expect(value).toBeTruthy();
+    expect(value).toBe(process.env.FB_EXTERNAL_BUSINESS_ID);
+    
+    console.log('✅ External business ID verification PASSED');
+    console.log(`   - Option exists: wc_facebook_external_business_id`);
+    console.log(`   - Value is non-null: YES`);
+    console.log(`   - Matches expected: YES`);
   });
 
 });

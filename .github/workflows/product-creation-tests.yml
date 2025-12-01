@@ -211,6 +211,7 @@ jobs:
           WORDPRESS_URL: http://localhost:8080
           WP_USERNAME: admin
           WP_PASSWORD: admin
+          FB_EXTERNAL_BUSINESS_ID: ${{ secrets.FB_EXTERNAL_BUSINESS_ID }}
         run: npm run test:e2e
 
       - name: Check for PHP errors
