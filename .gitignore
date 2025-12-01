@@ -50,5 +50,6 @@ wp-config.php
 /test-results/
 /playwright-report/
 *login-failure-attempt*.png
+/tests/e2e/captured-events/*.json
 *test-failure*.png
 *debug*.png
