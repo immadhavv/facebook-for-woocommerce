@@ -63,6 +63,7 @@ test.describe('WooCommerce Plugin level tests', () => {
       console.log('   - All response codes are 200 OK');
     });
 
+
   test('Verify Debug mode and options visibility', async ({ page }) => {
     console.log('🔍 Debug mode is enabled already. Checking options visibility...');
     await page.goto(`${process.env.WORDPRESS_URL}/wp-admin/options.php`);
@@ -89,7 +90,7 @@ test.describe('WooCommerce Plugin level tests', () => {
 
     // Check WordPress version
     const wpCheck = execSync(
-      `wp core check-update --path="${wpRoot}" --format=json --allow-root || echo "[]"`,
+      `wp core check-update --path="${wpRoot}" --format=json --allow-root --skip-plugins --skip-themes  2>/dev/null`,
       { encoding: 'utf8' }
     );
 
@@ -102,7 +103,7 @@ test.describe('WooCommerce Plugin level tests', () => {
 
     // Check WooCommerce plugin version
     const wooCheck = execSync(
-      `wp plugin list --path="${wpRoot}" --name=woocommerce --format=json --allow-root`,
+      `wp plugin list --path="${wpRoot}" --name=woocommerce --format=json --allow-root --skip-plugins --skip-themes 2>/dev/null`,
       { encoding: 'utf8' }
     );
 
