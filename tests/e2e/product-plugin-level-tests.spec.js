@@ -69,7 +69,7 @@ test.describe('WooCommerce Plugin level tests', () => {
     await page.goto(`${process.env.WORDPRESS_URL}/wp-admin/options.php`);
 
     const label = page.locator('label[for="wc_facebook_external_business_id"]');
-    await expect(label).toBeVisible();
+    await label.waitFor({ state: 'visible', timeout: 10000 });
 
     const input = page.locator('#wc_facebook_external_business_id');
     const value = await input.inputValue();
@@ -288,6 +288,39 @@ test.describe('WooCommerce Plugin level tests', () => {
     }
 
     console.log('✅ All WooCommerce checks passed');
+  });
+
+  test('Clear background sync jobs and verify cleanup', async ({ page }) => {
+    console.log('🔍 Testing background sync job cleanup...');
+
+    // Navigate to WooCommerce Status Tools
+    await page.goto(`${process.env.WORDPRESS_URL}/wp-admin/admin.php?page=wc-status&tab=tools`);
+
+    // Handle the confirmation dialog
+    page.once('dialog', async dialog => {
+      console.log(`Dialog message: ${dialog.message()}`);
+      await dialog.accept();
+    });
+
+    // Click the Clear Background Sync Jobs button
+    await page.locator('tr.wc_facebook_delete_background_jobs input[type="submit"]').click();
+
+    // Wait for success message
+    const successMessage = page.locator('.updated.inline p:has-text("Background sync jobs have been deleted.")');
+    await successMessage.waitFor({ state: 'visible', timeout: 10000 });
+    console.log('✅ Background sync jobs cleared successfully');
+
+    // Navigate to options page to verify cleanup
+    await page.goto(`${process.env.WORDPRESS_URL}/wp-admin/options.php`);
+
+    // Search for any remaining background sync job options
+    const syncJobOptions = await page.locator('label[for^="wc_facebook_background_product_sync_job_"]').count();
+
+    if (syncJobOptions > 0) {
+      throw new Error(`❌ Found ${syncJobOptions} remaining sync job options - cleanup failed`);
+    }
+
+    console.log('✅ All background sync job options cleaned up');
   });
 
 });
