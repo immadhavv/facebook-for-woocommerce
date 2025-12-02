@@ -83,41 +83,30 @@ test.describe('WooCommerce Plugin level tests', () => {
     console.log(`   - Matches expected: YES`);
   });
 
-  test('Check WordPress and WooCommerce are up to date', async () => {
-    console.log('🔍 Checking WordPress and WooCommerce versions...');
+  test('Check WordPress and WooCommerce are up to date', async ({ page }) => {
+    await page.goto(`${process.env.WORDPRESS_URL}/wp-admin/update-core.php`);
 
-    const wpRoot = process.env.WORDPRESS_PATH;
-
-    // Check WordPress version
-    const wpCheck = execSync(
-      `wp core check-update --path="${wpRoot}" --format=json --allow-root --skip-plugins --skip-themes 2>/dev/null || echo "[]"`,
-      { encoding: 'utf8' }
-    );
-
-    const wpUpdates = JSON.parse(wpCheck);
-    if (wpUpdates.length === 0) {
+    // Check WordPress
+    const wpUpToDate = await page.locator('h2.response:has-text("You have the latest version of WordPress")').count();
+    if (wpUpToDate > 0) {
       console.log('✅ WordPress up to date');
     } else {
-      console.log(`❌ WordPress needs update: ${wpUpdates[0].version} available`);
+      console.log('❌ WordPress needs update');
     }
 
-    // Check WooCommerce plugin version
-    const wooCheck = execSync(
-      `wp plugin list --path="${wpRoot}" --name=woocommerce --format=json --allow-root --skip-plugins --skip-themes 2>/dev/null || echo "[]"`,
-      { encoding: 'utf8' }
-    );
+    // Check WooCommerce
+    const allPluginsUpToDate = await page.locator('p:has-text("Your plugins are all up to date.")').count();
+    const wooInUpdateTable = await page.locator('#update-plugins-table tr:has-text("WooCommerce")').count();
 
-    const wooPlugin = JSON.parse(wooCheck)[0];
-    const wooUpToDate = wooPlugin.update === 'none';
-
-    if (wooUpToDate) {
+    if (allPluginsUpToDate > 0 || wooInUpdateTable === 0) {
       console.log('✅ WooCommerce up to date');
     } else {
-      console.log(`❌ WooCommerce needs update: ${wooPlugin.update_version} available (current: ${wooPlugin.version})`);
+      console.log('❌ WooCommerce needs update');
     }
 
-    expect(wpUpdates.length).toBe(0);
-    expect(wooUpToDate).toBe(true);
+    expect(wpUpToDate).toBeGreaterThan(0);
+    expect(allPluginsUpToDate > 0 || wooInUpdateTable === 0).toBe(true);
+    console.log('✅ Wordpress and WooCommerce are up to date');
   });
 
 });
