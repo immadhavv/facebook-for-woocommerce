@@ -261,4 +261,33 @@ test.describe('WooCommerce Plugin level tests', () => {
     console.log('✅ Themes page loaded without errors');
   });
 
+  test('Verify WooCommerce is active and endpoints exist', async ({ page }) => {
+    console.log('🔍 Checking WooCommerce status...');
+
+    // Check if WooCommerce is active using filtered plugins page
+    await page.goto(`${process.env.WORDPRESS_URL}/wp-admin/plugins.php?plugin_status=active`);
+    
+    const wooActive = await page.locator('tr[data-slug="woocommerce"]').count();
+    if (wooActive === 0) {
+      throw new Error('❌ WooCommerce is not active');
+    }
+    console.log('✅ WooCommerce is active');
+
+    // Verify WooCommerce endpoints
+    const endpoints = ['shop', 'cart', 'checkout'];
+    for (const endpoint of endpoints) {
+      const response = await page.goto(`${process.env.WORDPRESS_URL}/${endpoint}`, {
+        waitUntil: 'domcontentloaded',
+        timeout: 30000
+      });
+
+      if (!response || !response.ok()) {
+        throw new Error(`❌ /${endpoint} endpoint not accessible (status: ${response?.status()})`);
+      }
+      console.log(`✅ /${endpoint} endpoint exists`);
+    }
+
+    console.log('✅ All WooCommerce checks passed');
+  });
+
 });

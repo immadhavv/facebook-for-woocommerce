@@ -138,6 +138,28 @@ jobs:
           wp option update woocommerce_store_postcode "12345" --allow-root
           wp option update woocommerce_currency "USD" --allow-root
 
+      - name: Verify WooCommerce setup
+        run: |
+          cd /tmp/wordpress
+            
+          # Check if WooCommerce is active
+          if ! wp plugin list --status=active --allow-root | grep -q "woocommerce"; then
+            echo "❌ WooCommerce is not active"
+            exit 1
+          fi
+            
+          echo "✅ WooCommerce is active"
+            
+          # Verify WooCommerce endpoints
+          for endpoint in shop cart checkout; do
+            if curl -sf "http://localhost:8080/$endpoint" > /dev/null; then
+              echo "✅ /$endpoint endpoint exists"
+            else
+              echo "❌ /$endpoint endpoint not found"
+              exit 1
+            fi
+          done
+
       - name: Install Facebook for WooCommerce plugin
         run: |
           cd /tmp/wordpress
@@ -215,7 +237,6 @@ jobs:
           FB_EXTERNAL_BUSINESS_ID: ${{ secrets.FB_EXTERNAL_BUSINESS_ID }}
           FB_ACCESS_TOKEN: ${{ secrets.FB_ACCESS_TOKEN }}
           FB_PIXEL_ID: ${{ secrets.FB_PIXEL_ID }}
-          FB_BUSINESS_MANAGER_ID: ${{ secrets.FB_BUSINESS_MANAGER_ID }}
         run: npm run test:e2e
 
       - name: Check for PHP errors
