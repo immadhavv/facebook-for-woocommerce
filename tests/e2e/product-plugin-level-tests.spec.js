@@ -109,4 +109,109 @@ test.describe('WooCommerce Plugin level tests', () => {
     console.log('✅ Wordpress and WooCommerce are up to date');
   });
 
+  test('Verify Facebook for WooCommerce plugin connection', async ({ page }) => {
+    console.log('🔍 Verifying Facebook plugin connection...');
+
+    const wpRoot = process.env.WORDPRESS_PATH;
+    const expectedAccessToken = process.env.FB_ACCESS_TOKEN;
+    const expectedPixelId = process.env.FB_PIXEL_ID;
+
+    // Verify connection via WP-CLI
+    let connectionCheck;
+    try {
+      connectionCheck = execSync(
+        `wp eval "
+          if (function_exists('facebook_for_woocommerce')) {
+            \\$connection = facebook_for_woocommerce()->get_connection_handler();
+            echo json_encode([
+              'connected' => \\$connection->is_connected(),
+              'access_token' => \\$connection->get_access_token(),
+              'pixel_id' => get_option('wc_facebook_pixel_id'),
+              'business_manager_id' => \\$connection->get_business_manager_id(),
+            ]);
+          } else {
+            echo json_encode(['error' => 'Plugin not loaded']);
+          }
+        " --path="${wpRoot}" --allow-root --skip-plugins --skip-themes`,
+        { encoding: 'utf8', stderr: 'pipe' }
+      );
+    } catch (error) {
+      throw new Error(`Failed to check plugin connection: ${error.message}`);
+    }
+
+    const connection = JSON.parse(connectionCheck.trim());
+
+    if (connection.error) {
+      throw new Error(`Plugin check failed: ${connection.error}`);
+    }
+
+    // Verify connection status
+    expect(connection.connected).toBe(true);
+    console.log('✅ Plugin is connected');
+
+    // Verify access token
+    if (expectedAccessToken) {
+      expect(connection.access_token).toBe(expectedAccessToken);
+      console.log('✅ Access token matches expected value');
+    } else {
+      expect(connection.access_token).toBeTruthy();
+      console.log('✅ Access token is present');
+    }
+
+    // Verify Pixel ID
+    if (expectedPixelId) {
+      expect(connection.pixel_id).toBe(expectedPixelId);
+      console.log('✅ Pixel ID matches expected value');
+    } else {
+      expect(connection.pixel_id).toBeTruthy();
+      console.log('✅ Pixel ID is present');
+    }
+
+    // Check Facebook settings page loads without errors
+    console.log('🔍 Checking Marketing > Facebook page...');
+
+    const errors = [];
+    page.on('pageerror', error => {
+      errors.push(`JS Error: ${error.message}`);
+    });
+
+    page.on('console', msg => {
+      if (msg.type() === 'error') {
+        errors.push(`Console Error: ${msg.text()}`);
+      }
+    });
+
+    await page.goto(`${process.env.WORDPRESS_URL}/wp-admin/admin.php?page=wc-facebook`, {
+      waitUntil: 'networkidle',
+      timeout: 30000
+    });
+
+    // Verify no fatal PHP errors
+    const content = await page.content();
+    const hasPHPError = content.includes('Fatal error') ||
+                        content.includes('Parse error') ||
+                        content.includes('Warning:') ||
+                        content.includes('There has been a critical error');
+
+    if (hasPHPError) {
+      errors.push('PHP errors detected on page');
+    }
+
+    // Verify page loaded properly (look for Facebook branding or settings)
+    const pageLoaded = await page.locator('.wc-facebook-settings, #wc-facebook-settings-page, .facebook-for-woocommerce').count() > 0;
+
+    if (!pageLoaded) {
+      errors.push('Facebook settings page did not load properly');
+    }
+
+    if (errors.length > 0) {
+      console.log('❌ Errors found:');
+      errors.forEach(err => console.log(`   - ${err}`));
+      throw new Error(`Facebook settings page validation failed: ${errors.join('; ')}`);
+    }
+
+    console.log('✅ Facebook settings page loaded without errors');
+    console.log('✅ All connection checks passed');
+  });
+
 });
