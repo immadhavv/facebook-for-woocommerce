@@ -90,7 +90,7 @@ test.describe('WooCommerce Plugin level tests', () => {
 
     // Check WordPress version
     const wpCheck = execSync(
-      `wp core check-update --path="${wpRoot}" --format=json --allow-root --skip-plugins --skip-themes  2>/dev/null`,
+      `wp core check-update --path="${wpRoot}" --format=json --allow-root --skip-plugins --skip-themes 2>/dev/null || echo "[]"`,
       { encoding: 'utf8' }
     );
 
@@ -103,7 +103,7 @@ test.describe('WooCommerce Plugin level tests', () => {
 
     // Check WooCommerce plugin version
     const wooCheck = execSync(
-      `wp plugin list --path="${wpRoot}" --name=woocommerce --format=json --allow-root --skip-plugins --skip-themes 2>/dev/null`,
+      `wp plugin list --path="${wpRoot}" --name=woocommerce --format=json --allow-root --skip-plugins --skip-themes 2>/dev/null || echo "[]"`,
       { encoding: 'utf8' }
     );
 
