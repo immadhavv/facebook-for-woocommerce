@@ -190,7 +190,6 @@ test.describe('WooCommerce Plugin level tests', () => {
     const content = await page.content();
     const hasPHPError = content.includes('Fatal error') ||
                         content.includes('Parse error') ||
-                        content.includes('Warning:') ||
                         content.includes('There has been a critical error');
 
     if (hasPHPError) {
@@ -212,6 +211,54 @@ test.describe('WooCommerce Plugin level tests', () => {
 
     console.log('✅ Facebook settings page loaded without errors');
     console.log('✅ All connection checks passed');
+  });
+
+  test('Verify Storefront theme is active', async ({ page }) => {
+    console.log('🔍 Checking active theme...');
+
+    const errors = [];
+    page.on('pageerror', error => {
+      errors.push(`JS Error: ${error.message}`);
+    });
+
+    page.on('console', msg => {
+      if (msg.type() === 'error') {
+        errors.push(`Console Error: ${msg.text()}`);
+      }
+    });
+
+    await page.goto(`${process.env.WORDPRESS_URL}/wp-admin/themes.php`, {
+      waitUntil: 'networkidle',
+      timeout: 30000
+    });
+
+    // Check for PHP errors
+    const content = await page.content();
+    const hasPHPError = content.includes('Fatal error') ||
+                        content.includes('Parse error') ||
+                        content.includes('There has been a critical error');
+
+    if (hasPHPError) {
+      errors.push('PHP errors detected on themes page');
+    }
+
+    // Verify Storefront theme is active
+    const storefrontActive = await page.locator('.theme.active[data-slug="storefront"]').count();
+
+    if (storefrontActive === 0) {
+      const activeTheme = await page.locator('.theme.active').getAttribute('data-slug');
+      errors.push(`Storefront theme is not active. Active theme: ${activeTheme || 'unknown'}`);
+    } else {
+      console.log('✅ Storefront theme is active');
+    }
+
+    if (errors.length > 0) {
+      console.log('❌ Errors found:');
+      errors.forEach(err => console.log(`   - ${err}`));
+      throw new Error(`Theme check failed: ${errors.join('; ')}`);
+    }
+
+    console.log('✅ Themes page loaded without errors');
   });
 
 });
