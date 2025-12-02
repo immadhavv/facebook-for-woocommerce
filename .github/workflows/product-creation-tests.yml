@@ -130,6 +130,9 @@ jobs:
         run: |
           cd /tmp/wordpress
           wp plugin install woocommerce --activate --allow-root
+          # Install Storefront theme (official WooCommerce theme with all hooks)
+          wp theme install storefront --activate --allow-root
+          echo "✅ Storefront theme installed and activated"
 
           # Basic WooCommerce setup
           wp option update woocommerce_store_address "123 Test Street" --allow-root
@@ -141,15 +144,15 @@ jobs:
       - name: Verify WooCommerce setup
         run: |
           cd /tmp/wordpress
-            
+
           # Check if WooCommerce is active
           if ! wp plugin list --status=active --allow-root | grep -q "woocommerce"; then
             echo "❌ WooCommerce is not active"
             exit 1
           fi
-            
+
           echo "✅ WooCommerce is active"
-            
+
           # Verify WooCommerce endpoints
           for endpoint in shop cart checkout; do
             if curl -sf "http://localhost:8080/$endpoint" > /dev/null; then

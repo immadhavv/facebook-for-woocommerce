@@ -116,30 +116,35 @@ test.describe('WooCommerce Plugin level tests', () => {
     const expectedAccessToken = process.env.FB_ACCESS_TOKEN;
     const expectedPixelId = process.env.FB_PIXEL_ID;
 
-    // Verify connection via WP-CLI (without --skip-plugins since we need the plugin loaded)
+    // Verify connection via PHP directly
     let connectionCheck;
     try {
-      connectionCheck = execSync(
-        `wp eval "
-          if (function_exists('facebook_for_woocommerce')) {
-            \\$connection = facebook_for_woocommerce()->get_connection_handler();
-            echo json_encode([
-              'connected' => \\$connection->is_connected(),
-              'access_token' => \\$connection->get_access_token(),
-              'pixel_id' => get_option('wc_facebook_pixel_id'),
-              'business_manager_id' => \\$connection->get_business_manager_id(),
-            ]);
-          } else {
-            echo json_encode(['error' => 'Plugin not loaded']);
-          }
-        " --path="${wpRoot}" --allow-root 2>&1 | grep -v "^PHP Warning" | grep "^{"`,
-        { encoding: 'utf8' }
-      );
+      const { exec } = require('child_process');
+      const { promisify } = require('util');
+      const execAsync = promisify(exec);
+
+      const phpCode = `
+        require_once('${wpRoot}/wp-load.php');
+        if (function_exists('facebook_for_woocommerce')) {
+          \\$conn = facebook_for_woocommerce()->get_connection_handler();
+          echo json_encode([
+            'connected' => \\$conn->is_connected(),
+            'access_token' => \\$conn->get_access_token(),
+            'pixel_id' => get_option('wc_facebook_pixel_id'),
+            'business_manager_id' => \\$conn->get_business_manager_id()
+          ]);
+        } else {
+          echo json_encode(['error' => 'Plugin not loaded']);
+        }
+      `;
+
+      const { stdout } = await execAsync(`php -r "${phpCode}"`, { cwd: __dirname });
+      connectionCheck = stdout.trim();
     } catch (error) {
       throw new Error(`Failed to check plugin connection: ${error.message}`);
     }
 
-    const connection = JSON.parse(connectionCheck.trim());
+    const connection = JSON.parse(connectionCheck);
 
     if (connection.error) {
       throw new Error(`Plugin check failed: ${connection.error}`);
@@ -266,7 +271,7 @@ test.describe('WooCommerce Plugin level tests', () => {
 
     // Check if WooCommerce is active using filtered plugins page
     await page.goto(`${process.env.WORDPRESS_URL}/wp-admin/plugins.php?plugin_status=active`);
-    
+
     const wooActive = await page.locator('tr[data-slug="woocommerce"]').count();
     if (wooActive === 0) {
       throw new Error('❌ WooCommerce is not active');
@@ -294,7 +299,17 @@ test.describe('WooCommerce Plugin level tests', () => {
     console.log('🔍 Testing background sync job cleanup...');
 
     // Navigate to WooCommerce Status Tools
-    await page.goto(`${process.env.WORDPRESS_URL}/wp-admin/admin.php?page=wc-status&tab=tools`);
+    await page.goto(`${process.env.WORDPRESS_URL}/wp-admin/admin.php?page=wc-status&tab=tools`, {
+      waitUntil: 'domcontentloaded',
+      timeout: 30000
+    });
+
+    // Wait for page to load and find the tool row
+    const toolRow = page.locator('tr.wc_facebook_delete_background_jobs');
+    await toolRow.waitFor({ state: 'visible', timeout: 30000 });
+
+    // Scroll to the element
+    await toolRow.scrollIntoViewIfNeeded();
 
     // Handle the confirmation dialog
     page.once('dialog', async dialog => {
@@ -303,7 +318,7 @@ test.describe('WooCommerce Plugin level tests', () => {
     });
 
     // Click the Clear Background Sync Jobs button
-    await page.locator('tr.wc_facebook_delete_background_jobs input[type="submit"]').click();
+    await toolRow.locator('input[type="submit"]').click();
 
     // Wait for success message
     const successMessage = page.locator('.updated.inline p:has-text("Background sync jobs have been deleted.")');
