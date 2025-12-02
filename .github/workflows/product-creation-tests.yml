@@ -215,6 +215,7 @@ jobs:
           FB_EXTERNAL_BUSINESS_ID: ${{ secrets.FB_EXTERNAL_BUSINESS_ID }}
           FB_ACCESS_TOKEN: ${{ secrets.FB_ACCESS_TOKEN }}
           FB_PIXEL_ID: ${{ secrets.FB_PIXEL_ID }}
+          FB_BUSINESS_MANAGER_ID: ${{ secrets.FB_BUSINESS_MANAGER_ID }}
         run: npm run test:e2e
 
       - name: Check for PHP errors

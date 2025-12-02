@@ -116,7 +116,7 @@ test.describe('WooCommerce Plugin level tests', () => {
     const expectedAccessToken = process.env.FB_ACCESS_TOKEN;
     const expectedPixelId = process.env.FB_PIXEL_ID;
 
-    // Verify connection via WP-CLI
+    // Verify connection via WP-CLI (without --skip-plugins since we need the plugin loaded)
     let connectionCheck;
     try {
       connectionCheck = execSync(
@@ -132,8 +132,8 @@ test.describe('WooCommerce Plugin level tests', () => {
           } else {
             echo json_encode(['error' => 'Plugin not loaded']);
           }
-        " --path="${wpRoot}" --allow-root --skip-plugins --skip-themes`,
-        { encoding: 'utf8', stderr: 'pipe' }
+        " --path="${wpRoot}" --allow-root 2>&1 | grep -v "^PHP Warning" | grep "^{"`,
+        { encoding: 'utf8' }
       );
     } catch (error) {
       throw new Error(`Failed to check plugin connection: ${error.message}`);
