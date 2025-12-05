@@ -112,11 +112,11 @@ jobs:
           fi
 
           echo "Creating Facebook product catalog..."
-          RESPONSE=$(curl -s -i -X POST \
-            "https://graph.facebook.com/v25.0/${{ secrets.FB_BUSINESS_MANAGER_ID }}/owned_product_catalogs" \
+          RESPONSE=$(curl -s -X POST \
+            "https://graph.facebook.com/v21.0/${{ secrets.FB_BUSINESS_MANAGER_ID }}/owned_product_catalogs" \
             -d "name=Test-Catalog" \
             -d "vertical=commerce" \
-            -d "access_token=${{ secrets.FB_ACCESS_TOKEN }}")
+            -d "access_token=${{ secrets.FB_ACCESS_TOKEN }}" )
 
           echo "Response: $RESPONSE"
 
@@ -301,7 +301,7 @@ jobs:
 
           echo "Deleting test catalog ID: ${{ env.FB_PRODUCT_CATALOG_ID }}..."
           RESPONSE=$(curl -s -X DELETE \
-            "https://graph.facebook.com/v25.0/${{ env.FB_PRODUCT_CATALOG_ID }}?access_token=${{ secrets.FB_ACCESS_TOKEN }}")
+            "https://graph.facebook.com/v21.0/${{ env.FB_PRODUCT_CATALOG_ID }}?access_token=${{ secrets.FB_ACCESS_TOKEN }}")
 
           echo "Response: $RESPONSE"
 
