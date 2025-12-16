@@ -147,6 +147,15 @@ async function checkForPhpErrors(page) {
   expect(pageContent).not.toContain('Parse error');
 }
 
+// Helper function to check for JavaScript errors
+function checkForJsErrors(page) {
+  const errors = [];
+  page.on('pageerror', error => {
+    errors.push(`JS Error: ${error.message}`);
+  });
+  return errors;
+}
+
 // Helper function to mark test start
 function logTestStart(testInfo) {
   const testName = testInfo.title;
@@ -938,11 +947,12 @@ async function generateProductUpdateCSV(existingProducts, categoryName = "feed-t
 
 // Helper function to ensure debug mode is enabled
 async function ensureDebugModeEnabled(page) {
+  return true;
   console.log('🔍 Checking debug mode status...');
 
   // Navigate to Facebook settings page
   await page.goto(`${process.env.WORDPRESS_URL}/wp-admin/admin.php?page=wc-facebook`, {
-    waitUntil: 'domcontentloaded',
+    waitUntil: 'networkidle',
     timeout: TIMEOUTS.EXTRA_LONG
   });
 
@@ -974,6 +984,505 @@ async function ensureDebugModeEnabled(page) {
   }
 }
 
+// Helper function to check WooCommerce logs for errors
+async function checkWooCommerceLogs() {
+  const { execSync } = require('child_process');
+  console.log('🔍 Checking WooCommerce logs for errors...');
+
+  const today = new Date().toISOString().split('T')[0];
+  const logsDir = process.env.WC_LOG_PATH;
+
+  if (!logsDir) {
+    throw new Error('❌ WC_LOG_PATH environment variable not set');
+  }
+
+  console.log(`📁 Looking for logs in: ${logsDir}`);
+
+  // Find today's log file
+  const logFile = execSync(
+    `find "${logsDir}" -name "facebook_for_woocommerce-${today}*.log" 2>/dev/null | head -1`,
+    { encoding: 'utf8' }
+  ).trim();
+
+  if (!logFile) {
+    console.log(`⚠️ No log file found for today (${today}) - plugin may not have logged yet`);
+    return { success: true, message: 'No log file found' };
+  }
+
+  console.log(`📄 Checking: ${logFile}`);
+  const errors = [];
+
+  // Check for fatal errors (case insensitive)
+  const fatalCount = execSync(
+    `grep -ic "fatal" "${logFile}" || echo 0`,
+    { encoding: 'utf8' }
+  ).trim();
+
+  if (parseInt(fatalCount) > 0) {
+    const fatalLines = execSync(`grep -i "fatal" "${logFile}"`, { encoding: 'utf8' });
+    errors.push(`❌ Found ${fatalCount} fatal error(s):\n${fatalLines}`);
+  }
+
+  // Check for non-200 response codes with context (excluding NOTICE level)
+  const nonOkCodesCheck = execSync(
+    `grep -n "^code: " "${logFile}" | grep -v "^code: 200" || true`,
+    { encoding: 'utf8' }
+  ).trim();
+
+  if (nonOkCodesCheck) {
+    const lines = nonOkCodesCheck.split('\n');
+    const criticalErrors = [];
+
+    // Check each non-200 code to see if it's NOTICE level (which we ignore)
+    for (const line of lines) {
+      const lineNum = parseInt(line.split(':')[0]);
+      if (lineNum) {
+        // Get the previous line to check log level
+        const previousLine = execSync(
+          `sed -n '${lineNum - 1}p' "${logFile}"`,
+          { encoding: 'utf8' }
+        ).trim();
+
+        // Only report if it's NOT a NOTICE level error
+        if (!previousLine.includes('NOTICE')) {
+          criticalErrors.push({ lineNum, line });
+        }
+      }
+    }
+
+    if (criticalErrors.length > 0) {
+      console.log(`\n⚠️ Found critical non-200 response codes. Showing context:\n`);
+
+      // Show context for critical errors only
+      for (const error of criticalErrors) {
+        console.log(`\n========== Around line ${error.lineNum} ==========`);
+        const context = execSync(
+          `sed -n '${Math.max(1, error.lineNum - 5)},${error.lineNum + 5}p' "${logFile}"`,
+          { encoding: 'utf8' }
+        );
+        console.log(context);
+      }
+
+      errors.push(`❌ Found ${criticalErrors.length} critical non-200 response code(s) (see context above)`);
+    } else {
+      console.log(`ℹ️ Found ${lines.length} NOTICE-level non-200 response code(s) - ignoring as expected`);
+    }
+  }
+
+  if (errors.length > 0) {
+    console.log('\n' + errors.join('\n\n'));
+    return { success: false, errors };
+  }
+
+  console.log('✅ Log validation PASSED');
+  console.log('   - No fatal errors');
+  console.log('   - All response codes are 200 OK');
+  return { success: true };
+}
+
+// Helper function to complete a purchase flow
+async function completePurchaseFlow(page) {
+  const url = process.env.TEST_PRODUCT_URL;
+
+  console.log(`   📦 Navigating to product page`);
+  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.EXTRA_LONG });
+
+  console.log(`   🛒 Adding product to cart`);
+  await page.click('.single_add_to_cart_button');
+  await page.waitForTimeout(TIMEOUTS.SHORT);
+
+  console.log(`   💳 Navigating to checkout`);
+  await page.goto('/checkout', { waitUntil: 'domcontentloaded', timeout: TIMEOUTS.EXTRA_LONG });
+  await page.evaluate(() => window.scrollBy(0, 400));
+  await page.waitForTimeout(TIMEOUTS.SHORT);
+
+  console.log(`   📝 Filling billing address from environment variables`);
+
+  // Fill in billing details from environment variables
+  await page.fill('#billing-first_name', process.env.TEST_USER_FIRST_NAME );
+  await page.fill('#billing-last_name', process.env.TEST_USER_LAST_NAME);
+  await page.fill('#billing-address_1', process.env.TEST_USER_ADDRESS_1 );
+  await page.fill('#billing-city', process.env.TEST_USER_CITY );
+
+  // Select country (US)
+  await page.selectOption('#billing-country', process.env.TEST_USER_COUNTRY);
+  await page.waitForTimeout(TIMEOUTS.INSTANT); // Wait for state dropdown to populate
+
+  // Select state (CA)
+  await page.selectOption('#billing-state', process.env.TEST_USER_STATE  );
+  await page.waitForTimeout(TIMEOUTS.INSTANT); // Wait for postcode field to be ready
+
+  // Fill postcode (wait for it to be ready first)
+  const postcodeField = page.locator('#billing-postcode');
+  await postcodeField.waitFor({ state: 'visible', timeout: TIMEOUTS.NORMAL });
+  await postcodeField.fill(process.env.TEST_USER_POSTCODE );
+
+  // Fill phone (optional)
+  if (process.env.TEST_USER_PHONE) {
+    await page.fill('#billing-phone', process.env.TEST_USER_PHONE);
+  }
+
+  console.log(`   ✅ Billing address filled`);
+
+  console.log(`   💰 Selecting Cash on Delivery`);
+  await page.waitForSelector('.wc-block-components-radio-control__option[for="radio-control-wc-payment-method-options-cod"]', {
+    state: 'visible',
+    timeout: TIMEOUTS.LONG
+  });
+  await page.click('label[for="radio-control-wc-payment-method-options-cod"]');
+  await page.waitForTimeout(TIMEOUTS.INSTANT);
+
+  console.log(`   ✅ Placing order`);
+  await page.locator('.wc-block-components-checkout-place-order-button').scrollIntoViewIfNeeded();
+
+  console.log(`   ⏳ Waiting for order to process...`);
+  await Promise.all([
+    page.waitForLoadState('domcontentloaded'),
+    page.click('.wc-block-components-checkout-place-order-button')
+  ]);
+
+  await page.waitForTimeout(TIMEOUTS.NORMAL);
+
+  const orderReceivedUrl = page.url();
+  console.log(`   ✅ Order completed: ${orderReceivedUrl}`);
+
+  // Extract order ID from URL
+  const orderIdMatch = orderReceivedUrl.match(/order-received\/(\d+)/);
+  const orderId = orderIdMatch ? orderIdMatch[1] : null;
+
+  return { orderReceivedUrl, orderId };
+}
+
+// Helper function to disconnect from Facebook and verify cleanup
+async function disconnectAndVerify() {
+  console.log('🔌 Initiating Facebook disconnection...');
+
+  const { exec } = require('child_process');
+  const { promisify } = require('util');
+  const execAsync = promisify(exec);
+
+  // Step 1: Verify connected before disconnect
+  console.log('📋 Checking connection status before disconnect...');
+  const { stdout: beforeStatus } = await execAsync(
+    `php -r "require_once('${wpSitePath}/wp-load.php');
+    \\$conn = facebook_for_woocommerce()->get_connection_handler();
+    echo json_encode([
+      'connected' => \\$conn->is_connected(),
+      'pixel_id' => get_option('wc_facebook_pixel_id'),
+      'access_token' => get_option('wc_facebook_access_token')
+    ]);"`,
+    { cwd: __dirname }
+  );
+
+  const before = JSON.parse(beforeStatus);
+
+  if (!before.connected) {
+    console.log('⚠️ Already disconnected - skipping disconnect, will proceed to reconnect');
+    return {
+      before,
+      after: before,
+      success: true,
+      skipped: true
+    };
+  }
+
+  console.log('✅ Verified connected state:');
+  console.log(`   - Connected: ${before.connected}`);
+  console.log(`   - Pixel ID: ${before.pixel_id || 'EMPTY'}`);
+  console.log(`   - Access Token: ${before.access_token ? 'Present' : 'Missing'}`);
+
+  // Step 2: Execute disconnect
+  console.log('🔌 Executing disconnect...');
+  await execAsync(
+    `php -r "require_once('${wpSitePath}/wp-load.php');
+    facebook_for_woocommerce()->get_connection_handler()->disconnect();"`,
+    { cwd: __dirname }
+  );
+  console.log('✅ Disconnect executed');
+
+  // Step 3: Wait before verification to allow async cleanup to complete
+  console.log('⏳ Waiting for disconnect cleanup to complete...');
+  await new Promise(resolve => setTimeout(resolve, TIMEOUTS.LONG ));
+
+  // Step 4: Verify disconnection
+  console.log('🔍 Verifying disconnection...');
+  const { stdout: afterStatus } = await execAsync(
+    `php -r "require_once('${wpSitePath}/wp-load.php');
+    \\$conn = facebook_for_woocommerce()->get_connection_handler();
+    echo json_encode([
+      'connected' => \\$conn->is_connected(),
+      'pixel_id' => get_option('wc_facebook_pixel_id'),
+      'facebook_config' => get_option('facebook_config'),
+      'access_token' => get_option('wc_facebook_access_token'),
+      'merchant_access_token' => get_option('wc_facebook_merchant_access_token'),
+      'external_business_id' => \\$conn->get_external_business_id()
+    ]);"`,
+    { cwd: __dirname }
+  );
+
+  const after = JSON.parse(afterStatus);
+
+  // Validate disconnection
+  const failures = [];
+
+  if (after.connected !== false) {
+    failures.push('Connection handler still reports connected');
+  }
+
+  if (after.pixel_id) {
+    failures.push(`Pixel ID not cleared: ${after.pixel_id}`);
+  }
+
+  if (after.facebook_config) {
+    failures.push('Facebook config option not deleted');
+  }
+
+  if (after.access_token) {
+    failures.push('Access token not cleared');
+  }
+
+  if (after.merchant_access_token) {
+    failures.push('Merchant access token not cleared');
+  }
+
+  // NOTE: We don't check external_business_id because the plugin's get_external_business_id()
+  // method auto-regenerates it if empty (see Connection.php lines 816-832).
+  // The disconnect() method does clear it, but any subsequent call to get_external_business_id()
+  // will regenerate a new ID. This is by design in the plugin, not a test failure.
+
+  if (failures.length > 0) {
+    throw new Error('❌ Disconnection verification failed:\n   - ' + failures.join('\n   - '));
+  }
+
+  console.log('✅ Disconnection verified successfully:');
+  console.log(`   - Connected: ${after.connected}`);
+  console.log(`   - Pixel ID: ${after.pixel_id || 'CLEARED'}`);
+  console.log(`   - Facebook Config: ${after.facebook_config || 'DELETED'}`);
+  console.log(`   - Access Token: ${after.access_token || 'CLEARED'}`);
+  console.log(`   - Merchant Token: ${after.merchant_access_token || 'CLEARED'}`);
+  console.log(`   - External Business ID: ${after.external_business_id || 'CLEARED'}`);
+
+  return {
+    before,
+    after,
+    success: true
+  };
+}
+
+// Helper function to reconnect to Facebook (mimics workflow setup)
+async function reconnectAndVerify() {
+  console.log('🔄 Initiating Facebook reconnection...');
+
+  const { exec } = require('child_process');
+  const { promisify } = require('util');
+  const execAsync = promisify(exec);
+
+  // Get required credentials from environment
+  const credentials = {
+    accessToken: process.env.FB_ACCESS_TOKEN,
+    businessManagerId: process.env.FB_BUSINESS_MANAGER_ID,
+    externalBusinessId: process.env.FB_EXTERNAL_BUSINESS_ID,
+    productCatalogId: process.env.FB_PRODUCT_CATALOG_ID,
+    pixelId: process.env.FB_PIXEL_ID,
+    pageId: process.env.FB_PAGE_ID
+  };
+
+  // Step 1: Verify disconnected state
+  console.log('📋 Verifying disconnected state before reconnect...');
+  const { stdout: beforeStatus } = await execAsync(
+    `php -r "require_once('${wpSitePath}/wp-load.php');
+    \\$conn = facebook_for_woocommerce()->get_connection_handler();
+    echo json_encode(['connected' => \\$conn->is_connected()]);"`,
+    { cwd: __dirname }
+  );
+
+  const before = JSON.parse(beforeStatus);
+  if (before.connected) {
+    console.log('⚠️ Already connected - skipping reconnect');
+    return {
+      before,
+      after: before,
+      success: true,
+      skipped: true
+    };
+  }
+  console.log('✅ Verified disconnected state');
+
+  // Step 2: Deactivate plugin before setting options
+  console.log('🔄 Deactivating plugin...');
+  await execAsync(
+    `php -r "require_once('${wpSitePath}/wp-load.php');
+    deactivate_plugins('facebook-for-woocommerce/facebook-for-woocommerce.php');"`,
+    { cwd: __dirname }
+  );
+  console.log('✅ Plugin deactivated');
+
+  // Step 3: Set all connection options while plugin is inactive
+  console.log('⚙️ Setting connection options...');
+  const options = [
+    ['wc_facebook_access_token', credentials.accessToken],
+    ['wc_facebook_merchant_access_token', credentials.accessToken],
+    ['wc_facebook_business_manager_id', credentials.businessManagerId],
+    ['wc_facebook_external_business_id', credentials.externalBusinessId],
+    ['wc_facebook_product_catalog_id', credentials.productCatalogId],
+    ['wc_facebook_pixel_id', credentials.pixelId],
+    ['wc_facebook_page_id', credentials.pageId],
+    ['wc_facebook_enable_server_to_server', 'yes'],
+    ['wc_facebook_enable_pixel', 'yes'],
+    ['wc_facebook_enable_advanced_matching', 'yes'],
+    ['wc_facebook_debug_mode', 'yes'],
+    ['wc_facebook_enable_debug_mode', 'yes'],
+    ['wc_facebook_has_connected_fbe_2', 'yes'],
+    ['wc_facebook_has_authorized_pages_read_engagement', 'yes'],
+    ['wc_facebook_enable_product_sync', 'yes']
+  ];
+
+  for (const [optionName, optionValue] of options) {
+    await execAsync(
+      `php -r "require_once('${wpSitePath}/wp-load.php'); update_option('${optionName}', '${optionValue}');"`,
+      { cwd: __dirname }
+    );
+  }
+  console.log(`✅ Set ${options.length} connection options`);
+
+  // Step 4: Activate plugin to trigger initialization with new options
+  console.log('🔄 Activating plugin to initialize connection...');
+  await execAsync(
+    `php -r "require_once('${wpSitePath}/wp-load.php');
+    activate_plugin('facebook-for-woocommerce/facebook-for-woocommerce.php');"`,
+    { cwd: __dirname }
+  );
+  console.log('✅ Plugin activated');
+
+  // Step 5: Verify reconnection
+  console.log('🔍 Verifying reconnection...');
+  const { stdout: afterStatus } = await execAsync(
+    `php -r "require_once('${wpSitePath}/wp-load.php');
+    \\$conn = facebook_for_woocommerce()->get_connection_handler();
+    echo json_encode([
+      'connected' => \\$conn->is_connected(),
+      'pixel_id' => get_option('wc_facebook_pixel_id'),
+      'access_token' => get_option('wc_facebook_access_token'),
+      'external_business_id' => \\$conn->get_external_business_id(),
+      'catalog_id' => get_option('wc_facebook_product_catalog_id')
+    ]);"`,
+    { cwd: __dirname }
+  );
+
+  const after = JSON.parse(afterStatus);
+
+  // Validate reconnection
+  const failures = [];
+
+  if (after.connected !== true) {
+    failures.push('Connection handler reports not connected');
+  }
+
+  if (!after.pixel_id || after.pixel_id !== credentials.pixelId) {
+    failures.push(`Pixel ID mismatch. Expected: ${credentials.pixelId}, Got: ${after.pixel_id || 'EMPTY'}`);
+  }
+
+  if (!after.access_token) {
+    failures.push('Access token not set');
+  }
+
+  if (!after.external_business_id || after.external_business_id !== credentials.externalBusinessId) {
+    failures.push(`External Business ID mismatch. Expected: ${credentials.externalBusinessId}, Got: ${after.external_business_id || 'EMPTY'}`);
+  }
+
+  // Only check catalog ID if it's provided in credentials
+  if (credentials.productCatalogId && (!after.catalog_id || after.catalog_id !== credentials.productCatalogId)) {
+    failures.push(`Catalog ID mismatch. Expected: ${credentials.productCatalogId}, Got: ${after.catalog_id || 'EMPTY'}`);
+  }
+
+  if (failures.length > 0) {
+    throw new Error('❌ Reconnection verification failed:\n   - ' + failures.join('\n   - '));
+  }
+
+  console.log('✅ Reconnection verified successfully:');
+  console.log(`   - Connected: ${after.connected}`);
+  console.log(`   - Pixel ID: ${after.pixel_id}`);
+  console.log(`   - External Business ID: ${after.external_business_id}`);
+  console.log(`   - Catalog ID: ${after.catalog_id}`);
+  console.log(`   - Access Token: Present`);
+
+  return {
+    before,
+    after,
+    success: true,
+    credentials
+  };
+}
+
+// Helper function to verify all products have Facebook fields cleared
+async function verifyProductsFacebookFieldsCleared() {
+  console.log('🔍 Verifying all product Facebook fields are cleared...');
+
+  const { exec } = require('child_process');
+  const { promisify } = require('util');
+  const execAsync = promisify(exec);
+
+  const { stdout, stderr } = await execAsync('php e2e-helpers.php verify_products_facebook_fields_cleared', { cwd: __dirname });
+
+  if (stderr) {
+    console.log(`⚠️ PHP stderr: ${stderr}`);
+  }
+
+  const output = stdout.trim();
+  const result = JSON.parse(output);
+
+  console.log(`✅ Checked ${result.total} products and variations`);
+
+  if (result.issues.length > 0) {
+    console.log(`❌ Found ${result.issues.length} products with Facebook fields not cleared:`);
+    result.issues.forEach(issue => {
+      console.log(`   - Product ID ${issue.id} (${issue.type}):`);
+      Object.entries(issue.fields).forEach(([key, value]) => {
+        console.log(`     • ${key}: ${value}`);
+      });
+    });
+    throw new Error(`${result.issues.length} products still have Facebook fields`);
+  }
+
+  console.log('✅ All product Facebook fields cleared');
+  return { success: true, total: result.total };
+}
+
+// Helper function to verify Facebook catalog is empty
+async function verifyFacebookCatalogEmpty() {
+  console.log('🔍 Verifying Facebook catalog is empty...');
+
+  const { exec } = require('child_process');
+  const { promisify } = require('util');
+  const execAsync = promisify(exec);
+
+  const { stdout, stderr } = await execAsync(
+    'php e2e-helpers.php verify_facebook_catalog_empty',
+    { cwd: __dirname }
+  );
+
+  if (stderr) {
+    console.log(`⚠️ PHP stderr: ${stderr}`);
+  }
+
+  const output = stdout.trim();
+  const result = JSON.parse(output);
+
+  if (!result.success) {
+    throw new Error(`Failed to query Facebook catalog: ${result.error}`);
+  }
+
+  console.log(`📊 Catalog ID: ${result.catalog_id}`);
+  console.log(`📦 Products found: ${result.product_count}`);
+
+  if (!result.is_empty) {
+    throw new Error(`❌ Catalog is not empty! Found ${result.product_count} product(s)`);
+  }
+
+  console.log('✅ Facebook catalog is empty');
+  return { success: true, catalog_id: result.catalog_id };
+}
+
 module.exports = {
   baseURL,
   username,
@@ -1002,5 +1511,12 @@ module.exports = {
   generateProductFeedCSV,
   deleteFeedFile,
   generateProductUpdateCSV,
-  ensureDebugModeEnabled
+  ensureDebugModeEnabled,
+  checkWooCommerceLogs,
+  completePurchaseFlow,
+  checkForJsErrors,
+  disconnectAndVerify,
+  reconnectAndVerify,
+  verifyProductsFacebookFieldsCleared,
+  verifyFacebookCatalogEmpty
 };

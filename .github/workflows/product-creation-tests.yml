@@ -40,6 +40,7 @@ env:
   PAGE_LOAD_TIMEOUT: 120000
 
   # Customer Billing/Shipping Address
+  WP_CUSTOMER_EMAIL: 'customer@test.com'
   TEST_USER_FIRST_NAME: Test
   TEST_USER_LAST_NAME: Customer
   TEST_USER_ADDRESS_1: '123 Test Street'
@@ -56,7 +57,6 @@ env:
   STORE_COUNTRY: 'US:CA'
   STORE_POSTCODE: '12345'
   STORE_CURRENCY: USD
-
 
 jobs:
   e2e-tests:
@@ -142,6 +142,19 @@ jobs:
           touch ${{ env.WP_DEBUG_LOG }}
           chmod 777 ${{ env.WP_DEBUG_LOG }}
           echo "✅ debug.log created and writable"
+
+      - name: Check logs baseline (before plugin activation)
+        run: |
+          TODAY=$(date +%d-%b-%Y)
+          WC_LOG="${{ env.WORDPRESS_PATH }}/wp-content/uploads/wc-logs/facebook_for_woocommerce-${TODAY}*.log"
+
+          # Check WC log exists
+          ls $WC_LOG 1> /dev/null 2>&1 && echo "WC_LOG_EXISTS_BEFORE=1" >> $GITHUB_ENV || echo "WC_LOG_EXISTS_BEFORE=0" >> $GITHUB_ENV
+
+          # Count debug.log errors
+          BEFORE_ERRORS=$(grep -i "fatal\|error" "${{ env.WP_DEBUG_LOG }}" | grep -v "Cron reschedule event error for hook: facebook_for_woocommerce_5_minute_heartbeat_cron" | wc -l || echo "0")
+          echo "BEFORE_ERRORS=$BEFORE_ERRORS" >> $GITHUB_ENV
+          echo "📝 Baseline: WC log exists=${{ env.WC_LOG_EXISTS_BEFORE }}, debug.log errors=$BEFORE_ERRORS"
 
       - name: WooCommerce logs directory setup
         run: |
@@ -236,14 +249,14 @@ jobs:
           # Create a customer (non-admin) user for testing
           # Pixel tracking excludes admin users by default!
           # Note: customer role is created by WooCommerce, so this step must run AFTER WooCommerce installation
-          wp user create ${{ env.WP_CUSTOMER_USERNAME}} customer@test.com --role=customer --user_pass=${{ env.WP_CUSTOMER_PASSWORD }} --allow-root || echo "Customer user already exists"
+          wp user create ${{ env.WP_CUSTOMER_USERNAME}} ${{ env.WP_CUSTOMER_EMAIL }} --role=customer --user_pass=${{ env.WP_CUSTOMER_PASSWORD }} --allow-root || echo "Customer user already exists"
 
           # Grant read capability to customer role (for viewing products/categories)
           # This ensures customer can see shop pages, products, and categories
           wp cap add customer read --allow-root
 
           # Get customer user ID once and store it
-          CUSTOMER_ID=$(wp user get customer@test.com --field=ID --allow-root)
+          CUSTOMER_ID=$(wp user get ${{ env.WP_CUSTOMER_EMAIL }} --field=ID --allow-root)
           echo "Customer User ID: $CUSTOMER_ID"
 
           # Add billing address to customer user for comprehensive event testing
@@ -318,6 +331,7 @@ jobs:
           wp option update wc_facebook_enable_pixel "yes" --allow-root
           wp option update wc_facebook_enable_advanced_matching "yes" --allow-root
           wp option update wc_facebook_debug_mode yes --allow-root
+          wp option update wc_facebook_enable_debug_mode yes --allow-root
           wp option update wc_facebook_has_connected_fbe_2 "yes" --allow-root
           wp option update wc_facebook_has_authorized_pages_read_engagement "yes" --allow-root
           wp option update wc_facebook_enable_product_sync "yes" --allow-root
@@ -325,6 +339,31 @@ jobs:
 
           # Activate the plugin (this triggers automatic sync)
           wp plugin activate facebook-for-woocommerce --allow-root
+
+      - name: Verify no new errors after plugin activation
+        run: |
+          TODAY=$(date +%d-%b-%Y)
+          WC_LOG="${{ env.WORDPRESS_PATH }}/wp-content/uploads/wc-logs/facebook_for_woocommerce-${TODAY}*.log"
+
+          # Check if WC log appeared after activation
+          if ls $WC_LOG 1> /dev/null 2>&1; then
+            if [ "${{ env.WC_LOG_EXISTS_BEFORE }}" = "0" ]; then
+              echo "❌ FAIL: facebook_for_woocommerce WC log appeared after plugin activation!"
+              cat $WC_LOG
+              exit 1
+            fi
+          fi
+
+          # Check debug.log for new errors
+          AFTER_ERRORS=$(grep -i "fatal\|error" "${{ env.WP_DEBUG_LOG }}" | grep -v "Cron reschedule event error for hook: facebook_for_woocommerce_5_minute_heartbeat_cron" | wc -l || echo "0")
+
+          if [ "$AFTER_ERRORS" -gt "${{ env.BEFORE_ERRORS }}" ]; then
+            echo "❌ FAIL: Found new error/fatal entries in debug.log!"
+            grep -i "fatal\|error" "${{ env.WP_DEBUG_LOG }}" | grep -v "Cron reschedule event error for hook: facebook_for_woocommerce_5_minute_heartbeat_cron"
+            exit 1
+          fi
+
+          echo "✅ PASS: No new errors in logs"
 
       - name: Initialize rollout switches for E2E tests
         run: |
@@ -436,6 +475,14 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y xvfb
 
+
+      - name: Run CAPI Pixel E2E tests
+        env:
+          TEST_PRODUCT_ID: ${{ env.TEST_PRODUCT_ID }}
+        run: |
+          cd ${{ env.PLUGIN_PATH }}
+          xvfb-run --auto-servernum npx playwright test events-test*.spec.js --headed --project=chromium-wp-customer
+
       - name: Run Plugin level tests
         env:
           WP_USERNAME: admin
@@ -447,13 +494,6 @@ jobs:
         run: |
           cd ${{ env.PLUGIN_PATH }}
           npx playwright test "plugin-.*\.spec\.js" --project=chromium-wp-admin
-
-      - name: Run CAPI Pixel E2E tests
-        env:
-          TEST_PRODUCT_ID: ${{ env.TEST_PRODUCT_ID }}
-        run: |
-          cd ${{ env.PLUGIN_PATH }}
-          xvfb-run --auto-servernum npx playwright test events-test*.spec.js --headed --project=chromium-wp-customer
 
       - name: Cleanup test product
         if: always()
@@ -474,7 +514,6 @@ jobs:
         run: |
           cd ${{ env.PLUGIN_PATH }}
           npx playwright test "product-.*\.spec\.js" --project=chromium-wp-admin
-
 
       - name: Disconnect from catalog
         if: always()
@@ -522,6 +561,36 @@ jobs:
             echo "✅ No debug log found - no PHP errors"
           fi
 
+      - name: Check WooCommerce logs for non-200 response codes
+        if: always()
+        run: |
+          TODAY=$(date +%d-%b-%Y)
+          WC_LOG="${{ env.WORDPRESS_PATH }}/wp-content/uploads/wc-logs/facebook_for_woocommerce-${TODAY}*.log"
+
+          if ls $WC_LOG 1> /dev/null 2>&1; then
+            # Search for lines with "code:" and check if any are non-200
+            NON_200_ERRORS=$(grep -n "code:" $WC_LOG | grep -v "code: 200" || true)
+            if [ -n "$NON_200_ERRORS" ]; then
+              echo "❌ Non-200 response codes detected in WooCommerce logs:"
+              echo "$NON_200_ERRORS" | while IFS= read -r line; do
+                LINE_NUM=$(echo "$line" | cut -d: -f1)
+                START_LINE=$((LINE_NUM - 2))
+                END_LINE=$((LINE_NUM + 2))
+                if [ $START_LINE -lt 1 ]; then
+                  START_LINE=1
+                fi
+                echo "--- Context around line $LINE_NUM ---"
+                sed -n "${START_LINE},${END_LINE}p" $WC_LOG
+                echo ""
+              done
+              exit 1
+            else
+              echo "✅ All response codes are 200"
+            fi
+          else
+            echo "✅ No WooCommerce log found for today"
+          fi
+
       - name: Upload test results
         uses: actions/upload-artifact@v4
         if: always()
@@ -555,6 +624,14 @@ jobs:
         with:
           name: php-debug-logs
           path: ${{ env.WP_DEBUG_LOG }}
+          retention-days: 7
+
+      - name: Upload WooCommerce logs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: woocommerce-logs
+          path: ${{ env.WORDPRESS_PATH }}/wp-content/uploads/wc-logs/facebook_for_woocommerce-*.log
           retention-days: 7
 
       - name: Upload test videos/screenshots
